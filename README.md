@@ -12,7 +12,7 @@ Live, multiplayer tic-tac-toe for 2–4 players. Create a room, share the link, 
 
 ```bash
 npm install
-npm run dev:backend   # terminal 1: Convex backend (asks you to log in or run locally)
+npm run dev:backend   # terminal 1: Convex dev backend (npx convex login first)
 npm run dev           # terminal 2: http://localhost:3000
 ```
 
@@ -24,15 +24,21 @@ npm run lint
 npm run typecheck
 ```
 
+## Live
+
+**https://tic-tac-toe-kohl-pi-15.vercel.app**
+
 ## Deploy (free)
 
-1. **Convex:** run `npx convex login`, then `npx convex dev` once to create your cloud project.
-   In the [Convex dashboard](https://dashboard.convex.dev), open your project → *Settings* → *Deploy keys* and generate a **Production deploy key**.
-2. **GitHub:** push this folder to a new repository.
-3. **Vercel:** import the repo at [vercel.com/new](https://vercel.com/new), then:
-   - **Build command:** `npx convex deploy --cmd 'npm run build'`
-   - **Environment variable:** `CONVEX_DEPLOY_KEY` = the key from step 1
-4. Deploy. Every push to `main` now deploys the backend and frontend together.
+Already set up: every push to `main` deploys the Convex backend and the Next.js frontend together.
+The build command lives in [`vercel.json`](vercel.json) (`npx convex deploy --cmd 'npm run build'`), and Vercel has
+`CONVEX_DEPLOY_KEY` set for Production.
+
+To set it up again from scratch:
+
+1. `npx convex login`, then `npx convex dev` once to create the Convex project.
+2. `npx convex deployment token create vercel-prod --prod` to create a production deploy key.
+3. Import the GitHub repo on [Vercel](https://vercel.com/new) and add `CONVEX_DEPLOY_KEY` (Production) with that key.
 
 ## How it works
 
