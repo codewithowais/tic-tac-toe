@@ -80,17 +80,6 @@ export async function recordRound(ctx: MutationCtx, seats: Doc<"rooms">["seats"]
   else await ctx.db.insert("dailyGames", { day, games: 1 });
 }
 
-/** Updates the nickname on the rows that are shown: all-time and this week. */
-export async function renameStats(ctx: MutationCtx, playerId: Id<"players">, name: string) {
-  for (const period of [ALL_TIME, weekKey(Date.now())]) {
-    const row = await ctx.db
-      .query("stats")
-      .withIndex("by_player_period", (q) => q.eq("playerId", playerId).eq("period", period))
-      .unique();
-    if (row && row.name !== name) await ctx.db.patch(row._id, { name });
-  }
-}
-
 /** Win rate as a whole percentage. Draws count as half a win. */
 export function winRate(row: { wins: number; draws: number; games: number }) {
   return row.games === 0 ? 0 : Math.round(((row.wins + row.draws / 2) / row.games) * 100);

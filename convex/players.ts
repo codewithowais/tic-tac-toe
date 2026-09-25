@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { cleanName } from "./lib/game";
-import { renameStats } from "./lib/stats";
+import { renameEverywhere } from "./lib/players";
 
 /** Creates the player on first visit, or updates their nickname. */
 export const ensure = mutation({
@@ -16,10 +16,7 @@ export const ensure = mutation({
       .withIndex("by_token", (q) => q.eq("token", token))
       .unique();
     if (existing) {
-      if (existing.name !== clean) {
-        await ctx.db.patch(existing._id, { name: clean });
-        await renameStats(ctx, existing._id, clean);
-      }
+      if (existing.name !== clean) await renameEverywhere(ctx, existing._id, clean);
       return { playerId: existing._id, name: clean, now: Date.now() };
     }
     const playerId = await ctx.db.insert("players", { token, name: clean });

@@ -15,6 +15,7 @@ import {
 } from "./lib/admin";
 import { deleteRoom } from "./lib/cleanup";
 import { cleanName } from "./lib/game";
+import { renameEverywhere, roomsWithPlayer } from "./lib/players";
 import { removeSeat } from "./lib/rounds";
 import { ALL_TIME, dayKey, weekStart, winRate } from "./lib/stats";
 
@@ -205,12 +206,6 @@ export const players = query({
   },
 });
 
-/** Rooms are deleted after a day idle, so scanning them to find a player's seats stays cheap. */
-async function roomsWithPlayer(ctx: MutationCtx, playerId: Id<"players">) {
-  const rooms = await ctx.db.query("rooms").take(2000);
-  return rooms.filter((r) => r.seats.some((s) => s.playerId === playerId));
-}
-
 async function requireHuman(ctx: MutationCtx, playerId: Id<"players">) {
   const player = await ctx.db.get(playerId);
   if (!player || isBot(player)) throw new ConvexError("Player not found");
@@ -225,17 +220,7 @@ export const renamePlayer = mutation({
     const clean = cleanName(name);
     if (!clean) throw new ConvexError("Nickname can't be empty");
 
-    await ctx.db.patch(playerId, { name: clean });
-    const rows = await ctx.db
-      .query("stats")
-      .withIndex("by_player_period", (q) => q.eq("playerId", playerId))
-      .collect();
-    for (const row of rows) await ctx.db.patch(row._id, { name: clean });
-    for (const room of await roomsWithPlayer(ctx, playerId)) {
-      await ctx.db.patch(room._id, {
-        seats: room.seats.map((s) => (s.playerId === playerId ? { ...s, name: clean } : s)),
-      });
-    }
+    await renameEverywhere(ctx, playerId, clean);
   },
 });
 
