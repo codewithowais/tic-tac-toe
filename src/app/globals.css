@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Paper by day */
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --ink: #161b26;
+  --muted: #5d6676;
+  --line: #dde2ea;
+  --grid: #c7cfdb;
+  --dot: #d3d9e2;
+  --focus: #2b59ff;
+  --seat-0: #2b59ff;
+  --seat-1: #ee3f36;
+  --seat-2: #0e9f6e;
+  --seat-3: #9b51e0;
+  color-scheme: light;
+}
+
+/* Chalkboard by night */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17201d;
+    --surface: #1e2925;
+    --surface-2: #25322d;
+    --ink: #e9efeb;
+    --muted: #9aaba3;
+    --line: #2f3d37;
+    --grid: #4a5b53;
+    --dot: #25312c;
+    --focus: #8fb0ff;
+    --seat-0: #86a8ff;
+    --seat-1: #ff8177;
+    --seat-2: #52d3a3;
+    --seat-3: #c9a0ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17201d;
+  --surface: #1e2925;
+  --surface-2: #25322d;
+  --ink: #e9efeb;
+  --muted: #9aaba3;
+  --line: #2f3d37;
+  --grid: #4a5b53;
+  --dot: #25312c;
+  --focus: #8fb0ff;
+  --seat-0: #86a8ff;
+  --seat-1: #ff8177;
+  --seat-2: #52d3a3;
+  --seat-3: #c9a0ff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-grid: var(--grid);
+  --color-focus: var(--focus);
+  --font-sans: var(--font-instrument);
+  --font-display: var(--font-bricolage);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.3px);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: var(--font-instrument), system-ui, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--seat-0) 25%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
