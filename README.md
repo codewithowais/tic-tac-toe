@@ -3,6 +3,7 @@
 Live, multiplayer tic-tac-toe for 2–4 players. Create a room, share the link, play in real time. Anyone else with the link can watch.
 
 - **Modes:** Classic (2 players, 3×3), Trio (3 players, 4×4), Squad (4 players, 5×5, four in a row) or Custom (2–4 players, 3×3 to 7×7, 3–5 in a row)
+- **Play vs the computer:** go solo, or have the host fill open seats with computers. Pick Easy, Medium or Hard for each one (Hard can't be beaten on 3×3)
 - Nicknames and a running score per room, online presence, emoji reactions, and a turn timer (15/30/60s; if it runs out, the server makes a random move for you)
 - Light (“paper”) and dark (“chalkboard”) themes, sound effects, keyboard play (arrow keys + Enter), works on phones
 
@@ -47,7 +48,8 @@ convex/
   lib/game.ts      pure rules: win detection, settings validation (shared with the UI)
   lib/rounds.ts    state transitions: start round, apply move, remove seat
   rooms.ts         create / join / leave / kick / get, daily cleanup of idle rooms
-  game.ts          move, rematch, turn-timeout job
+  game.ts          move, rematch, turn-timeout job, computer moves
+  lib/bot.ts       computer opponent: win, block, fork, heuristics; perfect play on 3×3
   reactions.ts     emoji reactions (rate-limited)
   presence.ts      online status via @convex-dev/presence
 src/

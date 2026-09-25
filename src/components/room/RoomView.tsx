@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import type { BotLevel } from "@convex/lib/bot";
+import { BOT_LABELS, BOT_LEVELS } from "@convex/lib/bot";
 import { normalizeCode } from "@convex/lib/game";
 import { errorMessage } from "@/lib/errors";
 import { useSession } from "@/lib/session";
@@ -151,6 +153,7 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
   const join = useMutation(api.rooms.join);
   const leave = useMutation(api.rooms.leave);
   const kick = useMutation(api.rooms.kick);
+  const addBot = useMutation(api.rooms.addBot);
   const rematch = useMutation(api.game.rematch);
   const move = useMutation(api.game.move).withOptimisticUpdate((store, { code, cell }) => {
     const current = store.getQuery(api.rooms.get, { code });
@@ -203,7 +206,7 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
 
   const status = statusText(room, mySeat);
   const iAmReady = room.rematch.includes(me);
-  const waitingFor = room.seats.filter((s) => !room.rematch.includes(s.playerId)).map((s) => s.name);
+  const waitingFor = room.seats.filter((s) => !s.bot && !room.rematch.includes(s.playerId)).map((s) => s.name);
 
   return (
     <main className={`mx-auto flex w-full flex-1 flex-col gap-5 px-4 pb-10 sm:px-6 ${room.settings.maxPlayers > 3 ? "max-w-4xl" : "max-w-2xl"}`}>
@@ -211,7 +214,12 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
 
       <div className="relative mx-auto w-full max-w-[min(100%,560px,calc(100dvh-340px))] min-w-[260px]">
         {room.status === "lobby" ? (
-          <Lobby room={room} openSeats={openSeats} />
+          <Lobby
+            room={room}
+            openSeats={openSeats}
+            isHost={room.hostId === me}
+            onAddBot={(level) => run(addBot({ token, code: room.code, level }))}
+          />
         ) : (
           <Board
             key={room.round}
@@ -291,7 +299,17 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
   );
 }
 
-function Lobby({ room, openSeats }: { room: RoomState; openSeats: number }) {
+function Lobby({
+  room,
+  openSeats,
+  isHost,
+  onAddBot,
+}: {
+  room: RoomState;
+  openSeats: number;
+  isHost: boolean;
+  onAddBot: (level: BotLevel) => void;
+}) {
   return (
     <div className="relative aspect-square w-full">
       <div className="absolute inset-0 opacity-50 [mask-image:radial-gradient(circle,transparent_32%,black_72%)]">
@@ -314,6 +332,18 @@ function Lobby({ room, openSeats }: { room: RoomState; openSeats: number }) {
           Send the link or this code to {openSeats === 1 ? "one more friend" : `${openSeats} friends`}. The game starts
           when every seat is filled.
         </p>
+        {isHost && openSeats > 0 && (
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-sm text-muted">Or fill a seat with a computer</span>
+            <div className="flex gap-1.5">
+              {BOT_LEVELS.map((level) => (
+                <Button key={level} variant="secondary" onClick={() => onAddBot(level)}>
+                  {BOT_LABELS[level]}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -327,6 +357,7 @@ function statusText(room: RoomState, mySeat: number): { text: string; seat: numb
   }
   if (room.status === "playing") {
     if (room.turn === mySeat) return { text: "Your turn", seat: mySeat };
+    if (room.seats[room.turn]?.bot) return { text: `${name(room.turn)} is thinking`, seat: room.turn };
     return { text: `${name(room.turn)}'s turn`, seat: room.turn };
   }
   if (room.winner === null) return { text: "It's a draw", seat: null };

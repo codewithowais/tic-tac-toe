@@ -15,12 +15,14 @@ import {
   settingsError,
   type ModeKey,
 } from "@convex/lib/game";
+import { BOT_LABELS, BOT_LEVELS, type BotLevel } from "@convex/lib/bot";
 import { errorMessage } from "@/lib/errors";
 import { useSession } from "@/lib/session";
 import { sounds } from "@/lib/sound";
 import { useToast } from "./Toast";
 import { Button, Spinner } from "./ui";
 import { Mark } from "./Mark";
+import { Segmented } from "./Segmented";
 
 type Choice = ModeKey | "custom";
 
@@ -98,6 +100,9 @@ export function CreateRoom() {
   const [choice, setChoice] = useState<Choice>("classic");
   const [custom, setCustom] = useState({ maxPlayers: 2, size: 4, winLength: 3 });
   const [turnSeconds, setTurnSeconds] = useState<number>(30);
+  const [opponents, setOpponents] = useState<"friends" | "computer">("friends");
+  // One level per computer seat, so levels can be mixed. Only the first maxPlayers - 1 are used.
+  const [botLevels, setBotLevels] = useState<BotLevel[]>(["medium", "medium", "medium"]);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -106,6 +111,8 @@ export function CreateRoom() {
   const base = choice === "custom" ? custom : MODES[choice];
   const settings = { ...base, turnSeconds };
   const invalid = settingsError(settings);
+  const solo = opponents === "computer";
+  const bots = solo ? botLevels.slice(0, settings.maxPlayers - 1) : undefined;
 
   function updateCustom(patch: Partial<typeof custom>) {
     setCustom((c) => {
@@ -125,7 +132,7 @@ export function CreateRoom() {
     setBusy(true);
     try {
       await session.saveName(nameValue);
-      const roomCode = await createRoom({ token: session.token, settings });
+      const roomCode = await createRoom({ token: session.token, settings, bots });
       router.push(`/r/${roomCode}`);
     } catch (err) {
       toast(errorMessage(err));
@@ -158,6 +165,20 @@ export function CreateRoom() {
             className="h-12 rounded-xl border border-line bg-bg px-4 text-base outline-none transition placeholder:text-muted/60 focus:border-focus"
           />
         </label>
+
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">Play against</legend>
+          <Segmented
+            id="opponents"
+            label="Play against"
+            value={opponents}
+            onChange={setOpponents}
+            options={[
+              { value: "friends", label: "Friends online" },
+              { value: "computer", label: "The computer" },
+            ]}
+          />
+        </fieldset>
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">Game</legend>
@@ -215,37 +236,58 @@ export function CreateRoom() {
           </AnimatePresence>
         </fieldset>
 
+        <AnimatePresence initial={false}>
+          {solo && (
+            <motion.fieldset
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 36 }}
+              className="overflow-hidden"
+            >
+              <legend className="mb-2 text-sm font-medium">Computer difficulty</legend>
+              <div className="flex flex-col gap-2">
+                {bots!.map((level, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Mark seat={i + 1} strokeWidth={12} className="h-6 w-6 shrink-0" />
+                    <div className="flex-1">
+                      <Segmented
+                        id={`bot-${i}`}
+                        label={`Difficulty of computer ${i + 1}`}
+                        size="sm"
+                        value={level}
+                        onChange={(next) => setBotLevels((all) => all.map((l, j) => (j === i ? next : l)))}
+                        options={BOT_LEVELS.map((l) => ({ value: l, label: BOT_LABELS[l] }))}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(bots!.length > 1 || settings.size === 3) && (
+                <p className="mt-2 text-xs text-muted">
+                  {bots!.length > 1 && "Mix levels however you like. "}
+                  {settings.size === 3 && "Hard can’t be beaten on a 3×3 board."}
+                </p>
+              )}
+            </motion.fieldset>
+          )}
+        </AnimatePresence>
+
         <fieldset>
           <legend className="mb-2 text-sm font-medium">Time per move</legend>
-          <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1">
-            {TURN_SECONDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={turnSeconds === s}
-                onClick={() => setTurnSeconds(s)}
-                className={clsx(
-                  "relative h-9 rounded-lg text-sm font-semibold transition",
-                  turnSeconds === s ? "text-ink" : "text-muted hover:text-ink",
-                )}
-              >
-                {turnSeconds === s && (
-                  <motion.span
-                    layoutId="timer-pill"
-                    className="absolute inset-0 rounded-lg bg-surface shadow-sm"
-                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                  />
-                )}
-                <span className="relative">{s} seconds</span>
-              </button>
-            ))}
-          </div>
+          <Segmented
+            id="timer"
+            label="Time per move"
+            value={turnSeconds}
+            onChange={setTurnSeconds}
+            options={TURN_SECONDS.map((s) => ({ value: s, label: `${s} seconds` }))}
+          />
           <p className="mt-2 text-xs text-muted">If time runs out, a random move is made for you.</p>
         </fieldset>
 
         <Button type="submit" size="lg" disabled={busy || !session.loaded}>
           {busy && <Spinner />}
-          Create room
+          {solo ? "Start game" : "Create room"}
         </Button>
       </form>
 
@@ -293,6 +335,7 @@ function ModeOption({
       type="button"
       role="radio"
       aria-checked={selected}
+      aria-label={`${name}: ${blurb}`}
       onClick={onSelect}
       className={clsx(
         "flex items-center gap-3 rounded-2xl border p-3 text-left transition",

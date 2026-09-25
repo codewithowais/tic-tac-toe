@@ -39,9 +39,15 @@ export function PlayerStrip({ room, me, online, onKick }: Props) {
             score={seat.score}
             isMe={seat.playerId === me}
             isHost={seat.playerId === room.hostId}
-            online={online.has(seat.playerId)}
-            ready={room.status === "finished" && room.rematch.includes(seat.playerId)}
-            canKick={isHost && seat.playerId !== me && !online.has(seat.playerId)}
+            bot={seat.bot !== undefined}
+            online={seat.bot !== undefined || online.has(seat.playerId)}
+            ready={room.status === "finished" && (seat.bot !== undefined || room.rematch.includes(seat.playerId))}
+            canKick={
+              isHost &&
+              seat.playerId !== me &&
+              // Computers can be removed between rounds; offline humans at any time.
+              (seat.bot !== undefined ? room.status !== "playing" : !online.has(seat.playerId))
+            }
             onKick={() => onKick(seat.playerId)}
           />
         ) : (
@@ -65,6 +71,7 @@ function PlayerChip({
   score,
   isMe,
   isHost,
+  bot,
   online,
   ready,
   canKick,
@@ -76,6 +83,7 @@ function PlayerChip({
   score: number;
   isMe: boolean;
   isHost: boolean;
+  bot: boolean;
   online: boolean;
   ready: boolean;
   canKick: boolean;
@@ -101,13 +109,22 @@ function PlayerChip({
     >
       <div className="relative shrink-0">
         <Mark seat={index} strokeWidth={12} className="h-7 w-7" />
-        <span
-          className={clsx(
-            "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface",
-            online ? "bg-[#22c55e]" : "bg-grid",
-          )}
-          title={online ? "Online" : "Offline"}
-        />
+        {bot ? (
+          <span
+            className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-surface bg-ink text-bg"
+            title="Computer"
+          >
+            <BotIcon />
+          </span>
+        ) : (
+          <span
+            className={clsx(
+              "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface",
+              online ? "bg-[#22c55e]" : "bg-grid",
+            )}
+            title={online ? "Online" : "Offline"}
+          />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
@@ -120,9 +137,11 @@ function PlayerChip({
           )}
         </div>
         <div className="text-xs text-muted">
-          {active ? (
+          {active && bot ? (
+            <Thinking />
+          ) : active ? (
             <TurnClock endsAt={room.turnEndsAt} />
-          ) : ready ? (
+          ) : ready && !bot ? (
             <span className="font-medium text-ink">Ready for another round</span>
           ) : won ? (
             <span style={{ color }}>Won the round</span>
@@ -130,6 +149,8 @@ function PlayerChip({
             "Offline"
           ) : isMe ? (
             "You"
+          ) : bot ? (
+            "Computer"
           ) : (
             " "
           )}
@@ -192,5 +213,29 @@ function TimerBar({ endsAt, total, color }: { endsAt: number; total: number; col
       transition={{ duration: remaining / 1000, ease: "linear" }}
       aria-hidden="true"
     />
+  );
+}
+
+function BotIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="currentColor" aria-hidden="true">
+      <path d="M11 2h2v3h4a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3h4V2Zm-2 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
+    </svg>
+  );
+}
+
+function Thinking() {
+  return (
+    <span className="inline-flex items-center gap-1">
+      Thinking
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="inline-block h-1 w-1 rounded-full bg-current"
+          animate={{ opacity: [0.2, 1, 0.2] }}
+          transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
+        />
+      ))}
+    </span>
   );
 }
