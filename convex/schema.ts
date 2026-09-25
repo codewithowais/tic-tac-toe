@@ -8,10 +8,14 @@ export const settingsValidator = v.object({
   turnSeconds: v.number(),
 });
 
+export const botLevelValidator = v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"));
+
 export const seatValidator = v.object({
   playerId: v.id("players"),
   name: v.string(),
   score: v.number(),
+  /** Set for computer players. */
+  bot: v.optional(botLevelValidator),
 });
 
 export default defineSchema({

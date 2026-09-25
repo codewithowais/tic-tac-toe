@@ -1,10 +1,11 @@
 import { ConvexError, v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import { requirePlayer } from "./lib/auth";
 import { CODE_ALPHABET, CODE_LENGTH, emptyBoard, normalizeCode, settingsError } from "./lib/game";
-import { removeSeat, startRound } from "./lib/rounds";
+import { newBotSeat, removeSeat, startRound } from "./lib/rounds";
 import { presence } from "./presence";
-import { settingsValidator } from "./schema";
+import { botLevelValidator, settingsValidator } from "./schema";
 
 const IDLE_ROOM_MS = 24 * 60 * 60 * 1000;
 
@@ -29,21 +30,33 @@ function randomCode() {
   return code;
 }
 
+/**
+ * Creates a room with the caller in seat 0. Passing `bots` fills that many of the
+ * other seats with computer players; if that fills the room, the game starts at once.
+ */
 export const create = mutation({
-  args: { token: v.string(), settings: settingsValidator },
-  handler: async (ctx, { token, settings }) => {
+  args: {
+    token: v.string(),
+    settings: settingsValidator,
+    bots: v.optional(v.array(botLevelValidator)),
+  },
+  handler: async (ctx, { token, settings, bots = [] }) => {
     const player = await requirePlayer(ctx, token);
     const error = settingsError(settings);
     if (error) throw new ConvexError(error);
+    if (bots.length > settings.maxPlayers - 1) throw new ConvexError("Too many computer players");
 
     let code = randomCode();
     for (let tries = 0; (await roomByCode(ctx, code)) && tries < 20; tries++) code = randomCode();
 
-    await ctx.db.insert("rooms", {
+    const seats: Doc<"rooms">["seats"] = [{ playerId: player._id, name: player.name, score: 0 }];
+    for (const level of bots) seats.push(await newBotSeat(ctx, seats, level));
+
+    const roomId = await ctx.db.insert("rooms", {
       code,
       hostId: player._id,
       settings,
-      seats: [{ playerId: player._id, name: player.name, score: 0 }],
+      seats,
       status: "lobby",
       board: emptyBoard(settings.size),
       turn: 0,
@@ -59,7 +72,29 @@ export const create = mutation({
       rematch: [],
       updatedAt: Date.now(),
     });
+    if (seats.length === settings.maxPlayers) {
+      const room = await ctx.db.get(roomId);
+      if (room) await startRound(ctx, room);
+    }
     return code;
+  },
+});
+
+/** Host-only: fills the next open seat with a computer player. */
+export const addBot = mutation({
+  args: { token: v.string(), code: v.string(), level: botLevelValidator },
+  handler: async (ctx, { token, code, level }) => {
+    const player = await requirePlayer(ctx, token);
+    const room = await requireRoom(ctx, code);
+    if (room.hostId !== player._id) throw new ConvexError("Only the host can add computer players");
+    if (room.status !== "lobby") throw new ConvexError("Computer players can only join between games");
+    if (room.seats.length >= room.settings.maxPlayers) throw new ConvexError("This room is full");
+
+    const seats = [...room.seats, await newBotSeat(ctx, room.seats, level)];
+    await ctx.db.patch(room._id, { seats, updatedAt: Date.now() });
+    if (seats.length === room.settings.maxPlayers) {
+      await startRound(ctx, { ...room, seats });
+    }
   },
 });
 

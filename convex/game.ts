@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation } from "./_generated/server";
 import { requirePlayer } from "./lib/auth";
-import { applyMove, startRound } from "./lib/rounds";
+import { chooseMove } from "./lib/bot";
+import { applyMove, everyoneReady, startRound } from "./lib/rounds";
 import { requireRoom } from "./rooms";
 
 export const move = mutation({
@@ -32,8 +33,7 @@ export const rematch = mutation({
       throw new ConvexError("You're watching this game");
     }
     const rematch = room.rematch.includes(player._id) ? room.rematch : [...room.rematch, player._id];
-    const everyoneReady = room.seats.every((s) => rematch.includes(s.playerId));
-    if (everyoneReady) {
+    if (everyoneReady(room.seats, rematch)) {
       await startRound(ctx, room);
     } else {
       await ctx.db.patch(room._id, { rematch, updatedAt: Date.now() });
@@ -51,6 +51,27 @@ export const timeout = internalMutation({
     const empty = room.board.flatMap((c, i) => (c === null ? [i] : []));
     if (empty.length === 0) return;
     const cell = empty[Math.floor(Math.random() * empty.length)];
+    await applyMove(ctx, room, cell, true);
+  },
+});
+
+/** Scheduled when it's a computer player's turn. */
+export const botMove = internalMutation({
+  args: { roomId: v.id("rooms"), round: v.number(), moveCount: v.number() },
+  handler: async (ctx, { roomId, round, moveCount }) => {
+    const room = await ctx.db.get(roomId);
+    if (!room || room.status !== "playing") return;
+    if (room.round !== round || room.moveCount !== moveCount) return;
+    const level = room.seats[room.turn]?.bot;
+    if (!level) return;
+    const cell = chooseMove({
+      board: room.board,
+      size: room.settings.size,
+      winLength: room.settings.winLength,
+      seat: room.turn,
+      players: room.seats.length,
+      level,
+    });
     await applyMove(ctx, room, cell, true);
   },
 });

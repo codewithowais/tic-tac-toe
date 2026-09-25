@@ -247,3 +247,118 @@ describe("cleanup", () => {
     expect(await t.query(api.rooms.get, { code })).toBeNull();
   });
 });
+
+describe("computer players", () => {
+  /** Lets the scheduled "thinking" delay pass so the bot moves. */
+  async function botThinks(t: T) {
+    vi.advanceTimersByTime(1_200);
+    await t.finishInProgressScheduledFunctions();
+  }
+
+  it("starts a solo game immediately with bots in the other seats", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: TRIO, bots: ["easy", "hard"] });
+    const room = await t.query(api.rooms.get, { code });
+    expect(room?.status).toBe("playing");
+    expect(room?.seats.map((s) => [s.name, s.bot ?? null])).toEqual([
+      ["Ali", null],
+      ["Easy bot", "easy"],
+      ["Hard bot", "hard"],
+    ]);
+  });
+
+  it("replies after the human moves, then hands the turn back", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: CLASSIC, bots: ["hard"] });
+    await play(t, code, ali.token, 0);
+    let room = await t.query(api.rooms.get, { code });
+    expect(room?.turn).toBe(1);
+    expect(room?.turnEndsAt).toBeNull(); // no countdown while the bot thinks
+
+    await botThinks(t);
+    room = await t.query(api.rooms.get, { code });
+    expect(room?.moveCount).toBe(2);
+    expect(room?.board.filter((c) => c === 1)).toHaveLength(1);
+    expect(room?.turn).toBe(0);
+    expect(room?.turnEndsAt).toBeTypeOf("number");
+  });
+
+  it("chains several bots in a row", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: TRIO, bots: ["medium", "medium"] });
+    await play(t, code, ali.token, 5);
+    await botThinks(t);
+    await botThinks(t);
+    const room = await t.query(api.rooms.get, { code });
+    expect(room?.moveCount).toBe(3);
+    expect(room?.turn).toBe(0);
+    expect(room?.seats.map((s) => s.name)).toEqual(["Ali", "Medium bot", "Medium bot 2"]);
+  });
+
+  it("never lets a human move for a bot", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: CLASSIC, bots: ["easy"] });
+    await play(t, code, ali.token, 0);
+    await expect(play(t, code, ali.token, 1)).rejects.toThrow("Not your turn");
+  });
+
+  it("plays a whole solo game to the end, and a rematch needs only the human", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: CLASSIC, bots: ["hard"] });
+    for (let i = 0; i < 9; i++) {
+      const room = await t.query(api.rooms.get, { code });
+      if (room?.status !== "playing") break;
+      await play(t, code, ali.token, room.board.indexOf(null));
+      await botThinks(t);
+    }
+    let room = await t.query(api.rooms.get, { code });
+    expect(room?.status).toBe("finished");
+    expect(room?.winner).not.toBe(0); // hard bot never loses on 3×3
+
+    await t.mutation(api.game.rematch, { token: ali.token, code });
+    room = await t.query(api.rooms.get, { code });
+    expect(room?.status).toBe("playing");
+    expect(room?.round).toBe(2);
+    expect(room?.turn).toBe(1); // the bot starts round 2...
+    await botThinks(t);
+    expect((await t.query(api.rooms.get, { code }))?.moveCount).toBe(1); // ...and moves on its own
+  });
+
+  it("lets only the host add bots to open seats, which can start the game", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const sara = await player(t, "Sara");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: TRIO });
+    await t.mutation(api.rooms.join, { token: sara.token, code });
+    await expect(t.mutation(api.rooms.addBot, { token: sara.token, code, level: "easy" })).rejects.toThrow("Only the host");
+    await t.mutation(api.rooms.addBot, { token: ali.token, code, level: "hard" });
+    const room = await t.query(api.rooms.get, { code });
+    expect(room?.status).toBe("playing");
+    expect(room?.seats.map((s) => s.bot ?? "human")).toEqual(["human", "human", "hard"]);
+    await expect(t.mutation(api.rooms.addBot, { token: ali.token, code, level: "easy" })).rejects.toThrow();
+  });
+
+  it("removes the bots when the last human leaves", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: CLASSIC, bots: ["easy"] });
+    await t.mutation(api.rooms.leave, { token: ali.token, code });
+    const room = await t.query(api.rooms.get, { code });
+    expect(room?.seats).toHaveLength(0);
+    expect(room?.status).toBe("lobby");
+  });
+
+  it("lets the host remove a bot", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, { token: ali.token, settings: TRIO, bots: ["easy"] });
+    const bot = (await t.query(api.rooms.get, { code }))!.seats[1];
+    await t.mutation(api.rooms.kick, { token: ali.token, code, playerId: bot.playerId });
+    expect((await t.query(api.rooms.get, { code }))?.seats.map((s) => s.name)).toEqual(["Ali"]);
+  });
+});
