@@ -13,6 +13,7 @@ import { normalizeCode } from "@convex/lib/game";
 import { errorMessage } from "@/lib/errors";
 import { useSession } from "@/lib/session";
 import { sounds } from "@/lib/sound";
+import { useTurnAlerts } from "@/lib/useTurnAlerts";
 import { Board } from "../Board";
 import { GridLines } from "../GridLines";
 import { Header } from "../Header";
@@ -200,6 +201,8 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
     }
     prev.current = { moveCount: room.moveCount, status: room.status, round: room.round };
   }, [room.moveCount, room.status, room.round, room.lastMove, room.board, room.winner]);
+
+  useTurnAlerts(myTurn, room.turnEndsAt);
 
   // Nudge in the tab title when it's your move.
   useEffect(() => {

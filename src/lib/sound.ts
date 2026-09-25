@@ -48,6 +48,21 @@ export const sounds = {
   win: () => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.09, 0.3, 0.06)),
   draw: () => [392, 349.23].forEach((f, i) => tone(f, i * 0.12, 0.25, 0.05)),
   pop: () => tone(880, 0, 0.08, 0.04),
+  /** Rising two-note chime: it's your move. */
+  yourTurn: () => {
+    tone(659.25, 0, 0.16, 0.07);
+    tone(987.77, 0.11, 0.28, 0.07);
+  },
+  /** Soft tick for the last seconds of your turn; `urgency` 0–1 raises the pitch. */
+  tick: (urgency = 0) => tone(1100 + urgency * 500, 0, 0.05, 0.035, "square"),
   /** Call from a click handler so browsers allow audio later. */
   unlock: () => void audio(),
 };
+
+/** Short vibration on phones that support it (Android). Follows the sound on/off switch. */
+export function buzz(pattern: number | number[] = 60) {
+  if (muted || typeof navigator === "undefined" || !("vibrate" in navigator)) return;
+  try {
+    navigator.vibrate(pattern);
+  } catch {}
+}
