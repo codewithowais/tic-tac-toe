@@ -8,12 +8,17 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as crons from "../crons.js";
 import type * as game from "../game.js";
+import type * as leaderboard from "../leaderboard.js";
+import type * as lib_admin from "../lib/admin.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bot from "../lib/bot.js";
+import type * as lib_cleanup from "../lib/cleanup.js";
 import type * as lib_game from "../lib/game.js";
 import type * as lib_rounds from "../lib/rounds.js";
+import type * as lib_stats from "../lib/stats.js";
 import type * as players from "../players.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
@@ -26,12 +31,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   crons: typeof crons;
   game: typeof game;
+  leaderboard: typeof leaderboard;
+  "lib/admin": typeof lib_admin;
   "lib/auth": typeof lib_auth;
   "lib/bot": typeof lib_bot;
+  "lib/cleanup": typeof lib_cleanup;
   "lib/game": typeof lib_game;
   "lib/rounds": typeof lib_rounds;
+  "lib/stats": typeof lib_stats;
   players: typeof players;
   presence: typeof presence;
   reactions: typeof reactions;

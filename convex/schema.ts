@@ -23,7 +23,9 @@ export default defineSchema({
   players: defineTable({
     token: v.string(),
     name: v.string(),
-  }).index("by_token", ["token"]),
+  })
+    .index("by_token", ["token"])
+    .searchIndex("search_name", { searchField: "name" }),
 
   rooms: defineTable({
     code: v.string(),
@@ -48,6 +50,38 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_updated", ["updatedAt"]),
+
+  // Leaderboard rows: one per player per period. `period` is "all" or "week:YYYY-MM-DD" (that week's Monday, UTC).
+  stats: defineTable({
+    playerId: v.id("players"),
+    name: v.string(),
+    period: v.string(),
+    wins: v.number(),
+    draws: v.number(),
+    games: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_period_wins", ["period", "wins"])
+    .index("by_player_period", ["playerId", "period"])
+    .index("by_period", ["period"]),
+
+  // Finished rounds per UTC day, for the admin overview.
+  dailyGames: defineTable({
+    day: v.string(),
+    games: v.number(),
+  }).index("by_day", ["day"]),
+
+  // Admin logins. Only a SHA-256 hash of the session token is stored.
+  adminSessions: defineTable({
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+  }).index("by_token_hash", ["tokenHash"]),
+
+  // Single row tracking failed admin logins, for the lockout.
+  adminLockout: defineTable({
+    failures: v.array(v.number()),
+    lockedUntil: v.number(),
+  }),
 
   reactions: defineTable({
     roomId: v.id("rooms"),

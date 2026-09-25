@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { BOT_LABELS, type BotLevel } from "./bot";
 import { emptyBoard, findWinAt, isBoardFull, nextSeat } from "./game";
+import { recordRound } from "./stats";
 
 type Room = Doc<"rooms">;
 type Seat = Room["seats"][number];
@@ -92,6 +93,7 @@ export async function applyMove(ctx: MutationCtx, room: Room, cell: number, from
       turnEndsAt: null,
       timerId: null,
     });
+    await recordRound(ctx, room.seats, win.seat);
     return;
   }
 
@@ -103,6 +105,7 @@ export async function applyMove(ctx: MutationCtx, room: Room, cell: number, from
       turnEndsAt: null,
       timerId: null,
     });
+    await recordRound(ctx, room.seats, null);
     return;
   }
 
