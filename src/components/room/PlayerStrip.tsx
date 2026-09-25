@@ -7,6 +7,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { useSession } from "@/lib/session";
 import { useNow } from "@/lib/useNow";
 import { Mark, seatColor } from "../Mark";
+import { NameEditor } from "./NameEditor";
 import type { RoomState } from "./types";
 
 type Props = {
@@ -89,6 +90,7 @@ function PlayerChip({
   canKick: boolean;
   onKick: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const active = room.status === "playing" && room.turn === index;
   const won = room.status === "finished" && room.winner === index;
   const color = seatColor(index);
@@ -129,8 +131,26 @@ function PlayerChip({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="truncate font-semibold">{name}</span>
-          {isHost && (
+          {editing ? (
+            <NameEditor onDone={() => setEditing(false)} className="w-full" />
+          ) : (
+            <span className="truncate font-semibold">{name}</span>
+          )}
+          {isMe && !editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Change your name"
+              title="Change your name"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-surface-2 hover:text-ink"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+                <path d="m13.5 6.5 4 4" />
+              </svg>
+            </button>
+          )}
+          {isHost && !editing && (
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-muted" fill="currentColor" aria-label="Host">
               <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z" />
             </svg>

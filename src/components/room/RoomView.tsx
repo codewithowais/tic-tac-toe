@@ -19,6 +19,7 @@ import { Header } from "../Header";
 import { Mark } from "../Mark";
 import { useToast } from "../Toast";
 import { Button, Spinner } from "../ui";
+import { NameEditor } from "./NameEditor";
 import { PlayerStrip } from "./PlayerStrip";
 import { ReactionBar, ReactionBubbles } from "./Reactions";
 import type { RoomState } from "./types";
@@ -148,8 +149,9 @@ function NamePrompt({ code }: { code: string }) {
 }
 
 function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
-  const { token } = useSession();
+  const { token, name: myName } = useSession();
   const toast = useToast();
+  const [editingName, setEditingName] = useState(false);
   const join = useMutation(api.rooms.join);
   const leave = useMutation(api.rooms.leave);
   const kick = useMutation(api.rooms.kick);
@@ -285,7 +287,7 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
           {room.draws > 0 && `, ${room.draws} ${room.draws === 1 ? "draw" : "draws"} so far`}
           {watching > 0 && `, ${watching} watching`}
         </span>
-        {seated && (
+        {seated ? (
           <button
             type="button"
             className="shrink-0 underline-offset-2 hover:text-ink hover:underline"
@@ -295,6 +297,16 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
             }}
           >
             Leave seat
+          </button>
+        ) : editingName ? (
+          <NameEditor onDone={() => setEditingName(false)} className="w-40 text-ink" />
+        ) : (
+          <button
+            type="button"
+            className="shrink-0 underline-offset-2 hover:text-ink hover:underline"
+            onClick={() => setEditingName(true)}
+          >
+            Watching as {myName}. Change name
           </button>
         )}
       </footer>
