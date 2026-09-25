@@ -3,16 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { isMuted, setMuted, sounds } from "@/lib/sound";
+import { isVoiceOn, setVoiceOn, speak, speechSupported } from "@/lib/speech";
 import { Mark } from "./Mark";
 
-export function Wordmark() {
+/** `compact` hides the text on small screens, for headers that also hold the room code. */
+export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/" className="group flex items-center gap-2.5" aria-label="Tic-tac-toe home">
       <span className="flex -space-x-1.5">
         <Mark seat={0} strokeWidth={13} className="h-6 w-6 transition-transform group-hover:-rotate-12" />
         <Mark seat={1} strokeWidth={13} className="h-6 w-6 transition-transform group-hover:rotate-12" />
       </span>
-      <span className="font-display text-lg font-bold tracking-tight">tic tac toe</span>
+      <span className={`font-display text-lg font-bold tracking-tight ${compact ? "hidden sm:inline" : ""}`}>
+        tic tac toe
+      </span>
     </Link>
   );
 }
@@ -91,11 +95,42 @@ function SoundToggle() {
   );
 }
 
+function VoiceToggle() {
+  const [supported, setSupported] = useState(false);
+  const [on, setOn] = useState(true);
+
+  useEffect(() => {
+    // Speech support and the saved setting are only known in the browser.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupported(speechSupported());
+    setOn(isVoiceOn());
+  }, []);
+
+  if (!supported) return null;
+
+  function toggle() {
+    const next = !on;
+    setVoiceOn(next);
+    setOn(next);
+    if (next) speak("Voice on");
+  }
+
+  return (
+    <IconButton label={on ? "Turn voice announcements off" : "Turn voice announcements on"} onClick={toggle}>
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 12a6 6 0 0 1 11.2-3M15 12.5c0 2.5-1.5 3.5-3 4.5v2a1 1 0 0 1-1 1H8a4 4 0 0 1-4-4v-4" />
+        <circle cx="9.5" cy="11" r="1" fill="currentColor" stroke="none" />
+        {on ? <path d="M18 9a4 4 0 0 1 0 6M20.5 6.5a8 8 0 0 1 0 11" /> : <path d="m17 9 5 6M22 9l-5 6" />}
+      </svg>
+    </IconButton>
+  );
+}
+
 export function Header({ children }: { children?: ReactNode }) {
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-      <Wordmark />
-      <div className="flex items-center gap-1">
+      <Wordmark compact={Boolean(children)} />
+      <div className="flex items-center gap-0.5 sm:gap-1">
         {children}
         <Link
           href="/leaderboard"
@@ -109,6 +144,7 @@ export function Header({ children }: { children?: ReactNode }) {
           </svg>
         </Link>
         <SoundToggle />
+        <VoiceToggle />
         <ThemeToggle />
       </div>
     </header>

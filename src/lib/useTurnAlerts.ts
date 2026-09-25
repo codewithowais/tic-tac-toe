@@ -3,27 +3,36 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "./session";
 import { buzz, sounds } from "./sound";
+import { speak, turnPhrase } from "./speech";
 
 const HURRY_SECONDS = 5;
 
 /**
- * Sound (and a buzz on phones) when the turn passes to you, plus a soft tick for
- * each of your last 5 seconds. Nothing plays for the state a page opens in.
+ * A chime, a buzz on phones and a spoken "Owais, it's your turn" when the turn
+ * passes to you, plus a soft tick for each of your last 5 seconds.
+ * Nothing plays for the state a page opens in.
  */
 export function useTurnAlerts(myTurn: boolean, turnEndsAt: number | null) {
-  const { clockOffset } = useSession();
+  const { clockOffset, name } = useSession();
   const wasMyTurn = useRef(myTurn);
 
   useEffect(() => {
     const becameMine = myTurn && !wasMyTurn.current;
     wasMyTurn.current = myTurn;
     if (!becameMine) return;
-    // Wait for the opponent's move sound to finish so the two don't overlap.
-    const id = setTimeout(() => {
+    // Wait for the opponent's move sound to finish so the two don't overlap,
+    // then say the player's name once the chime has rung out.
+    const chime = setTimeout(() => {
       sounds.yourTurn();
       buzz([40, 60, 40]);
     }, 180);
-    return () => clearTimeout(id);
+    const voice = setTimeout(() => speak(turnPhrase(name)), 600);
+    return () => {
+      clearTimeout(chime);
+      clearTimeout(voice);
+    };
+    // `name` is read when the turn changes; renaming mid-turn shouldn't re-announce.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myTurn]);
 
   useEffect(() => {
