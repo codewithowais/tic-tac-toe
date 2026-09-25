@@ -2,9 +2,9 @@ import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import { requirePlayer } from "./lib/auth";
+import { deleteRoom } from "./lib/cleanup";
 import { CODE_ALPHABET, CODE_LENGTH, emptyBoard, normalizeCode, settingsError } from "./lib/game";
 import { newBotSeat, removeSeat, startRound } from "./lib/rounds";
-import { presence } from "./presence";
 import { botLevelValidator, settingsValidator } from "./schema";
 
 const IDLE_ROOM_MS = 24 * 60 * 60 * 1000;
@@ -175,15 +175,6 @@ export const cleanupIdle = internalMutation({
       .query("rooms")
       .withIndex("by_updated", (q) => q.lt("updatedAt", cutoff))
       .take(100);
-    for (const room of stale) {
-      const reactions = await ctx.db
-        .query("reactions")
-        .withIndex("by_room", (q) => q.eq("roomId", room._id))
-        .collect();
-      for (const r of reactions) await ctx.db.delete(r._id);
-      if (room.timerId) await ctx.scheduler.cancel(room.timerId);
-      await presence.removeRoom(ctx, room.code);
-      await ctx.db.delete(room._id);
-    }
+    for (const room of stale) await deleteRoom(ctx, room);
   },
 });
