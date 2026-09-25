@@ -262,6 +262,9 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
             {iAmReady && waitingFor.length > 0 && (
               <p className="text-sm text-muted">Waiting for {listNames(waitingFor)}</p>
             )}
+            <Link href="/leaderboard" className="text-sm text-muted underline-offset-2 hover:text-ink hover:underline">
+              See the leaderboard
+            </Link>
           </div>
         )}
 
