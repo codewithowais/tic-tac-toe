@@ -4,6 +4,8 @@ Live, multiplayer tic-tac-toe for 2–4 players. Create a room, share the link, 
 
 - **Modes:** Classic (2 players, 3×3), Trio (3 players, 4×4), Squad (4 players, 5×5, four in a row) or Custom (2–4 players, 3×3 to 7×7, 3–5 in a row)
 - **Play vs the computer:** go solo, or have the host fill open seats with computers. Pick Easy, Medium or Hard for each one (Hard can't be beaten on 3×3)
+- **Leaderboard** at `/leaderboard`: this week (resets Monday 00:00 UTC) and all time. Every win counts, including against the computer
+- **Admin** at `/admin` (passcode): manage rooms, rename or remove players, reset leaderboards, usage overview
 - Nicknames and a running score per room, online presence, emoji reactions, and a turn timer (15/30/60s; if it runs out, the server makes a random move for you)
 - Light (“paper”) and dark (“chalkboard”) themes, sound effects, keyboard play (arrow keys + Enter), works on phones
 
@@ -41,6 +43,18 @@ To set it up again from scratch:
 2. `npx convex deployment token create vercel-prod --prod` to create a production deploy key.
 3. Import the GitHub repo on [Vercel](https://vercel.com/new) and add `CONVEX_DEPLOY_KEY` (Production) with that key.
 
+## Admin
+
+The admin page is at `/admin` and isn't linked anywhere. It's protected by the `ADMIN_PASSCODE`
+environment variable in Convex (never in the repo). To set or change it for production:
+
+```bash
+P=$(openssl rand -base64 24) && npx convex env set --prod ADMIN_PASSCODE "$P" && printf %s "$P" | pbcopy && unset P
+```
+
+That generates a random passcode, saves it in Convex and copies it to your clipboard without printing it.
+Save it in your password manager. Sessions last 12 hours; 5 wrong passcodes in 15 minutes lock logins for 15 minutes.
+
 ## How it works
 
 ```
@@ -48,12 +62,14 @@ convex/
   lib/game.ts      pure rules: win detection, settings validation (shared with the UI)
   lib/rounds.ts    state transitions: start round, apply move, remove seat
   rooms.ts         create / join / leave / kick / get, daily cleanup of idle rooms
+  leaderboard.ts   weekly and all-time top 25; lib/stats.ts records each finished round
+  admin.ts         passcode login and admin tools; lib/admin.ts checks sessions
   game.ts          move, rematch, turn-timeout job, computer moves
   lib/bot.ts       computer opponent: win, block, fork, heuristics; perfect play on 3×3
   reactions.ts     emoji reactions (rate-limited)
   presence.ts      online status via @convex-dev/presence
 src/
-  app/             home page and /r/[code] room page
+  app/             home, /r/[code] room, /leaderboard and /admin pages
   components/      Board, Mark (drawn SVG strokes), room UI
   lib/session.tsx  anonymous player identity (secret token in localStorage)
 ```
