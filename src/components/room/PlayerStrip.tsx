@@ -14,10 +14,12 @@ type Props = {
   room: RoomState;
   me: Id<"players">;
   online: Set<string>;
+  /** Players currently talking in the voice call. */
+  speaking?: Set<string>;
   onKick: (playerId: Id<"players">) => void;
 };
 
-export function PlayerStrip({ room, me, online, onKick }: Props) {
+export function PlayerStrip({ room, me, online, speaking, onKick }: Props) {
   const slots = Array.from({ length: room.settings.maxPlayers }, (_, i) => room.seats[i] ?? null);
   const isHost = room.hostId === me;
   return (
@@ -41,6 +43,7 @@ export function PlayerStrip({ room, me, online, onKick }: Props) {
             isMe={seat.playerId === me}
             isHost={seat.playerId === room.hostId}
             bot={seat.bot !== undefined}
+            talking={speaking?.has(seat.playerId) ?? false}
             online={seat.bot !== undefined || online.has(seat.playerId)}
             ready={room.status === "finished" && (seat.bot !== undefined || room.rematch.includes(seat.playerId))}
             canKick={
@@ -73,6 +76,7 @@ function PlayerChip({
   isMe,
   isHost,
   bot,
+  talking,
   online,
   ready,
   canKick,
@@ -85,6 +89,7 @@ function PlayerChip({
   isMe: boolean;
   isHost: boolean;
   bot: boolean;
+  talking: boolean;
   online: boolean;
   ready: boolean;
   canKick: boolean;
@@ -149,6 +154,18 @@ function PlayerChip({
                 <path d="m13.5 6.5 4 4" />
               </svg>
             </button>
+          )}
+          {talking && !editing && (
+            <span className="flex h-3.5 shrink-0 items-end gap-[2px]" style={{ color }} aria-label="Talking">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="w-[3px] rounded-full bg-current"
+                  animate={{ height: ["35%", "100%", "35%"] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12 }}
+                />
+              ))}
+            </span>
           )}
           {isHost && !editing && (
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-muted" fill="currentColor" aria-label="Host">

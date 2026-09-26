@@ -15,6 +15,7 @@ import { useSession } from "@/lib/session";
 import { sounds } from "@/lib/sound";
 import { announce } from "@/lib/speech";
 import { useTurnAlerts } from "@/lib/useTurnAlerts";
+import { useVoice } from "@/lib/useVoice";
 import { Board } from "../Board";
 import { GridLines } from "../GridLines";
 import { Header } from "../Header";
@@ -24,6 +25,7 @@ import { Button, Spinner } from "../ui";
 import { NameEditor } from "./NameEditor";
 import { Chat } from "./Chat";
 import { PlayerStrip } from "./PlayerStrip";
+import { VoiceBar } from "./VoiceBar";
 import { ReactionBar, ReactionBubbles } from "./Reactions";
 import type { RoomState } from "./types";
 
@@ -172,6 +174,7 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
 
   const presence = usePresence(api.presence, room.code, me);
   const online = useMemo(() => new Set((presence ?? []).filter((p) => p.online).map((p) => p.userId)), [presence]);
+  const voice = useVoice(room._id, room.code, me, online);
   const seatedIds = new Set(room.seats.map((s) => s.playerId));
   const watching = [...online].filter((id) => !seatedIds.has(id as Id<"players">)).length;
 
@@ -239,7 +242,14 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-1 items-start gap-6 xl:pr-6">
       <main className={`mx-auto flex w-full min-w-0 flex-1 flex-col gap-5 px-4 pb-24 sm:px-6 xl:pb-10 ${room.settings.maxPlayers > 3 ? "max-w-4xl" : "max-w-2xl"}`}>
-        <PlayerStrip room={room} me={me} online={online} onKick={(playerId) => run(kick({ token, code: room.code, playerId }))} />
+        <PlayerStrip
+          room={room}
+          me={me}
+          online={online}
+          speaking={voice.speaking}
+          onKick={(playerId) => run(kick({ token, code: room.code, playerId }))}
+        />
+        <VoiceBar voice={voice} room={room} me={me} />
 
         <div className="relative mx-auto w-full max-w-[min(100%,560px,calc(100dvh-340px))] min-w-[260px]">
           {room.status === "lobby" ? (
