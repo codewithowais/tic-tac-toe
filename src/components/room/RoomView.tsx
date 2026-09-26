@@ -181,9 +181,12 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
 
   const run = (p: Promise<unknown>) => p.catch((e) => toast(errorMessage(e)));
 
-  // Take a seat automatically the first time you open a room with space.
+  // Take a seat automatically the first time you open a room with space. Only ever once:
+  // once you've had a seat (joined, created the room, or used "Take a seat"), losing it
+  // because you left or the host removed you must not grab it straight back.
   const autoJoined = useRef(false);
   useEffect(() => {
+    if (seated) autoJoined.current = true;
     if (autoJoined.current || seated || room.status !== "lobby" || openSeats <= 0) return;
     autoJoined.current = true;
     join({ token, code: room.code }).catch((e) => toast(errorMessage(e)));
