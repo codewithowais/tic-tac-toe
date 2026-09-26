@@ -185,7 +185,9 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
   // Take a seat automatically the first time you open a room with space. Only ever once:
   // once you've had a seat (joined, created the room, or used "Take a seat"), losing it
   // because you left or the host removed you must not grab it straight back.
-  const autoJoined = useRef(false);
+  // If the room had no free seat when you opened it, you came to watch: a seat freeing
+  // up later shouldn't pull you into the game (the "Take a seat" button is there instead).
+  const autoJoined = useRef(seated || room.status !== "lobby" || openSeats <= 0);
   useEffect(() => {
     if (seated) autoJoined.current = true;
     if (autoJoined.current || seated || room.status !== "lobby" || openSeats <= 0) return;
