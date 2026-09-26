@@ -22,6 +22,7 @@ import { Mark } from "../Mark";
 import { useToast } from "../Toast";
 import { Button, Spinner } from "../ui";
 import { NameEditor } from "./NameEditor";
+import { Chat } from "./Chat";
 import { PlayerStrip } from "./PlayerStrip";
 import { ReactionBar, ReactionBubbles } from "./Reactions";
 import type { RoomState } from "./types";
@@ -234,106 +235,109 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
   const waitingFor = room.seats.filter((s) => !s.bot && !room.rematch.includes(s.playerId)).map((s) => s.name);
 
   return (
-    <main className={`mx-auto flex w-full flex-1 flex-col gap-5 px-4 pb-10 sm:px-6 ${room.settings.maxPlayers > 3 ? "max-w-4xl" : "max-w-2xl"}`}>
-      <PlayerStrip room={room} me={me} online={online} onKick={(playerId) => run(kick({ token, code: room.code, playerId }))} />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-1 items-start gap-6 xl:pr-6">
+      <main className={`mx-auto flex w-full min-w-0 flex-1 flex-col gap-5 px-4 pb-24 sm:px-6 xl:pb-10 ${room.settings.maxPlayers > 3 ? "max-w-4xl" : "max-w-2xl"}`}>
+        <PlayerStrip room={room} me={me} online={online} onKick={(playerId) => run(kick({ token, code: room.code, playerId }))} />
 
-      <div className="relative mx-auto w-full max-w-[min(100%,560px,calc(100dvh-340px))] min-w-[260px]">
-        {room.status === "lobby" ? (
-          <Lobby
-            room={room}
-            openSeats={openSeats}
-            isHost={room.hostId === me}
-            onAddBot={(level) => run(addBot({ token, code: room.code, level }))}
-          />
-        ) : (
-          <Board
-            key={room.round}
-            size={room.settings.size}
-            board={room.board}
-            mySeat={seated ? mySeat : null}
-            canPlay={myTurn}
-            winLine={room.winLine}
-            winner={room.winner}
-            onPlay={(cell) => {
-              sounds.unlock();
-              run(move({ token, code: room.code, cell }));
-            }}
-          />
-        )}
-        <ReactionBubbles roomId={room._id} me={me} />
-      </div>
+        <div className="relative mx-auto w-full max-w-[min(100%,560px,calc(100dvh-340px))] min-w-[260px]">
+          {room.status === "lobby" ? (
+            <Lobby
+              room={room}
+              openSeats={openSeats}
+              isHost={room.hostId === me}
+              onAddBot={(level) => run(addBot({ token, code: room.code, level }))}
+            />
+          ) : (
+            <Board
+              key={room.round}
+              size={room.settings.size}
+              board={room.board}
+              mySeat={seated ? mySeat : null}
+              canPlay={myTurn}
+              winLine={room.winLine}
+              winner={room.winner}
+              onPlay={(cell) => {
+                sounds.unlock();
+                run(move({ token, code: room.code, cell }));
+              }}
+            />
+          )}
+          <ReactionBubbles roomId={room._id} me={me} />
+        </div>
 
-      <div className="flex min-h-[88px] flex-col items-center gap-3 text-center">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={status.text}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className="font-display text-2xl font-bold tracking-tight"
-            style={status.seat !== null ? { color: `var(--seat-${status.seat})` } : undefined}
-            aria-live="polite"
-          >
-            {status.text}
-          </motion.p>
-        </AnimatePresence>
+        <div className="flex min-h-[88px] flex-col items-center gap-3 text-center">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={status.text}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="font-display text-2xl font-bold tracking-tight"
+              style={status.seat !== null ? { color: `var(--seat-${status.seat})` } : undefined}
+              aria-live="polite"
+            >
+              {status.text}
+            </motion.p>
+          </AnimatePresence>
 
-        {room.status === "finished" && seated && (
-          <div className="flex flex-col items-center gap-2">
-            <Button size="lg" onClick={() => run(rematch({ token, code: room.code }))} disabled={iAmReady}>
-              {iAmReady ? "Ready" : "Play again"}
+          {room.status === "finished" && seated && (
+            <div className="flex flex-col items-center gap-2">
+              <Button size="lg" onClick={() => run(rematch({ token, code: room.code }))} disabled={iAmReady}>
+                {iAmReady ? "Ready" : "Play again"}
+              </Button>
+              {iAmReady && waitingFor.length > 0 && (
+                <p className="text-sm text-muted">Waiting for {listNames(waitingFor)}</p>
+              )}
+              <Link href="/leaderboard" className="text-sm text-muted underline-offset-2 hover:text-ink hover:underline">
+                See the leaderboard
+              </Link>
+            </div>
+          )}
+
+          {!seated && room.status === "lobby" && openSeats > 0 && (
+            <Button size="lg" onClick={() => run(join({ token, code: room.code }))}>
+              Take a seat
             </Button>
-            {iAmReady && waitingFor.length > 0 && (
-              <p className="text-sm text-muted">Waiting for {listNames(waitingFor)}</p>
-            )}
-            <Link href="/leaderboard" className="text-sm text-muted underline-offset-2 hover:text-ink hover:underline">
-              See the leaderboard
-            </Link>
-          </div>
-        )}
+          )}
 
-        {!seated && room.status === "lobby" && openSeats > 0 && (
-          <Button size="lg" onClick={() => run(join({ token, code: room.code }))}>
-            Take a seat
-          </Button>
-        )}
+          {!seated && room.status !== "lobby" && <p className="text-sm text-muted">You&rsquo;re watching this game.</p>}
+        </div>
 
-        {!seated && room.status !== "lobby" && <p className="text-sm text-muted">You&rsquo;re watching this game.</p>}
-      </div>
+        <ReactionBar code={room.code} />
 
-      <ReactionBar code={room.code} />
-
-      <footer className="mt-auto flex items-center justify-between gap-4 border-t border-line pt-4 text-sm text-muted">
-        <span>
-          {room.settings.winLength} in a row wins
-          {room.draws > 0 && `, ${room.draws} ${room.draws === 1 ? "draw" : "draws"} so far`}
-          {watching > 0 && `, ${watching} watching`}
-        </span>
-        {seated ? (
-          <button
-            type="button"
-            className="shrink-0 underline-offset-2 hover:text-ink hover:underline"
-            onClick={() => {
-              autoJoined.current = true;
-              run(leave({ token, code: room.code }));
-            }}
-          >
-            Leave seat
-          </button>
-        ) : editingName ? (
-          <NameEditor onDone={() => setEditingName(false)} className="w-40 text-ink" />
-        ) : (
-          <button
-            type="button"
-            className="shrink-0 underline-offset-2 hover:text-ink hover:underline"
-            onClick={() => setEditingName(true)}
-          >
-            Watching as {myName}. Change name
-          </button>
-        )}
-      </footer>
-    </main>
+        <footer className="mt-auto flex items-center justify-between gap-4 border-t border-line pt-4 text-sm text-muted">
+          <span>
+            {room.settings.winLength} in a row wins
+            {room.draws > 0 && `, ${room.draws} ${room.draws === 1 ? "draw" : "draws"} so far`}
+            {watching > 0 && `, ${watching} watching`}
+          </span>
+          {seated ? (
+            <button
+              type="button"
+              className="shrink-0 underline-offset-2 hover:text-ink hover:underline"
+              onClick={() => {
+                autoJoined.current = true;
+                run(leave({ token, code: room.code }));
+              }}
+            >
+              Leave seat
+            </button>
+          ) : editingName ? (
+            <NameEditor onDone={() => setEditingName(false)} className="w-40 text-ink" />
+          ) : (
+            <button
+              type="button"
+              className="shrink-0 underline-offset-2 hover:text-ink hover:underline"
+              onClick={() => setEditingName(true)}
+            >
+              Watching as {myName}. Change name
+            </button>
+          )}
+        </footer>
+      </main>
+      <Chat room={room} me={me} />
+    </div>
   );
 }
 

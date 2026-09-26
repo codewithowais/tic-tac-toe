@@ -92,6 +92,17 @@ export default defineSchema({
     lockedUntil: v.number(),
   }),
 
+  // Room chat. Deleted along with the room.
+  messages: defineTable({
+    roomId: v.id("rooms"),
+    playerId: v.id("players"),
+    name: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_room", ["roomId", "createdAt"])
+    .index("by_room_player", ["roomId", "playerId", "createdAt"]),
+
   reactions: defineTable({
     roomId: v.id("rooms"),
     playerId: v.id("players"),
