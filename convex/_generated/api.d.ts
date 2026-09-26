@@ -17,6 +17,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_bot from "../lib/bot.js";
 import type * as lib_cleanup from "../lib/cleanup.js";
 import type * as lib_game from "../lib/game.js";
+import type * as lib_merge from "../lib/merge.js";
 import type * as lib_players from "../lib/players.js";
 import type * as lib_rounds from "../lib/rounds.js";
 import type * as lib_stats from "../lib/stats.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/bot": typeof lib_bot;
   "lib/cleanup": typeof lib_cleanup;
   "lib/game": typeof lib_game;
+  "lib/merge": typeof lib_merge;
   "lib/players": typeof lib_players;
   "lib/rounds": typeof lib_rounds;
   "lib/stats": typeof lib_stats;

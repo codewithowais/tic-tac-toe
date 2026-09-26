@@ -362,6 +362,8 @@ function PlayersSection({ session }: { session: string }) {
   const players = useQuery(api.admin.players, { session, search });
   const rename = useMutation(api.admin.renamePlayer);
   const remove = useMutation(api.admin.removePlayer);
+  const merge = useMutation(api.admin.mergePlayers);
+  const [merging, setMerging] = useState<{ id: Id<"players">; name: string } | null>(null);
   const toast = useToast();
   const [editing, setEditing] = useState<{ id: Id<"players">; name: string } | null>(null);
 
@@ -392,9 +394,19 @@ function PlayersSection({ session }: { session: string }) {
       }
     >
       <p className="-mt-2 text-sm text-muted">
-        Renaming updates the leaderboard and any room they&rsquo;re in. Removing deletes their stats, and their browser has to pick
-        a new nickname.
+        Renaming updates the leaderboard and any room they&rsquo;re in. Merging combines a duplicate (the same person on another
+        browser) into one player, and both browsers stay linked. Removing deletes their stats.
       </p>
+      {merging && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-3 text-sm">
+          <span>
+            Merging <strong>{merging.name}</strong>. Pick the player to keep; their stats are added together.
+          </span>
+          <Button variant="ghost" onClick={() => setMerging(null)}>
+            Cancel
+          </Button>
+        </div>
+      )}
       {players === undefined ? (
         <Spinner />
       ) : !players || players.length === 0 ? (
@@ -427,19 +439,44 @@ function PlayersSection({ session }: { session: string }) {
                       {timeAgo(p.joinedAt)}
                     </div>
                   </div>
-                  <Button variant="secondary" onClick={() => setEditing({ id: p._id, name: p.name })}>
-                    Rename
-                  </Button>
-                  <ConfirmButton
-                    confirmLabel="Remove?"
-                    onConfirm={() =>
-                      remove({ session, playerId: p._id })
-                        .then(() => toast(`Removed ${p.name}`))
-                        .catch((e) => toast(errorMessage(e)))
-                    }
-                  >
-                    Remove
-                  </ConfirmButton>
+                  {merging ? (
+                    merging.id === p._id ? (
+                      <span className="text-sm font-medium text-muted">Merging this player</span>
+                    ) : (
+                      <ConfirmButton
+                        confirmLabel="Merge?"
+                        onConfirm={() =>
+                          merge({ session, fromId: merging.id, intoId: p._id })
+                            .then(() => {
+                              toast(`Merged ${merging.name} into ${p.name}`);
+                              setMerging(null);
+                            })
+                            .catch((e) => toast(errorMessage(e)))
+                        }
+                      >
+                        Keep this one
+                      </ConfirmButton>
+                    )
+                  ) : (
+                    <>
+                      <Button variant="secondary" onClick={() => setEditing({ id: p._id, name: p.name })}>
+                        Rename
+                      </Button>
+                      <Button variant="secondary" onClick={() => setMerging({ id: p._id, name: p.name })}>
+                        Merge
+                      </Button>
+                      <ConfirmButton
+                        confirmLabel="Remove?"
+                        onConfirm={() =>
+                          remove({ session, playerId: p._id })
+                            .then(() => toast(`Removed ${p.name}`))
+                            .catch((e) => toast(errorMessage(e)))
+                        }
+                      >
+                        Remove
+                      </ConfirmButton>
+                    </>
+                  )}
                 </>
               )}
             </li>

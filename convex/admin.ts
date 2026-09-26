@@ -15,14 +15,15 @@ import {
 } from "./lib/admin";
 import { deleteRoom } from "./lib/cleanup";
 import { cleanName } from "./lib/game";
-import { renameEverywhere, roomsWithPlayer } from "./lib/players";
+import { mergePlayers as mergeInto } from "./lib/merge";
+import { isBotPlayer, renameEverywhere, roomsWithPlayer } from "./lib/players";
 import { removeSeat } from "./lib/rounds";
 import { ALL_TIME, dayKey, weekStart, winRate } from "./lib/stats";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BATCH = 100;
 
-const isBot = (player: { token: string }) => player.token.startsWith("bot_");
+const isBot = isBotPlayer;
 
 // ---------------------------------------------------------------------------
 // Login
@@ -235,8 +236,33 @@ export const removePlayer = mutation({
       .withIndex("by_player_period", (q) => q.eq("playerId", playerId))
       .collect();
     for (const row of rows) await ctx.db.delete(row._id);
+    const links = await ctx.db
+      .query("playerTokens")
+      .withIndex("by_player", (q) => q.eq("playerId", playerId))
+      .collect();
+    for (const link of links) await ctx.db.delete(link._id);
     for (const room of await roomsWithPlayer(ctx, playerId)) await removeSeat(ctx, room, playerId);
     await ctx.db.delete(playerId);
+  },
+});
+
+/**
+ * Merges a duplicate identity into another player: stats are added together and
+ * the duplicate's browser is linked, so it keeps playing as the kept player.
+ */
+export const mergePlayers = mutation({
+  args: { session: v.string(), fromId: v.id("players"), intoId: v.id("players") },
+  handler: async (ctx, { session, fromId, intoId }) => {
+    await requireAdmin(ctx, session);
+    await mergeInto(ctx, fromId, intoId);
+  },
+});
+
+/** Same as mergePlayers, for running from the Convex dashboard or CLI (not callable from browsers). */
+export const mergePlayersInternal = internalMutation({
+  args: { fromId: v.id("players"), intoId: v.id("players") },
+  handler: async (ctx, { fromId, intoId }) => {
+    await mergeInto(ctx, fromId, intoId);
   },
 });
 

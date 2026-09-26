@@ -27,6 +27,15 @@ export default defineSchema({
     .index("by_token", ["token"])
     .searchIndex("search_name", { searchField: "name" }),
 
+  // Extra browser tokens linked to a player (after an admin merges two identities).
+  // Like `players.token`, these are secrets and are never returned from a query.
+  playerTokens: defineTable({
+    token: v.string(),
+    playerId: v.id("players"),
+  })
+    .index("by_token", ["token"])
+    .index("by_player", ["playerId"]),
+
   rooms: defineTable({
     code: v.string(),
     hostId: v.id("players"),

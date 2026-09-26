@@ -1,6 +1,11 @@
 // Renaming a player everywhere their name is copied: seats in rooms and leaderboard rows.
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+
+/** Computer players are stored as players whose token starts with "bot_". */
+export function isBotPlayer(player: Pick<Doc<"players">, "token">) {
+  return player.token.startsWith("bot_");
+}
 
 /** Rooms are deleted after a day idle, so scanning them to find a player's seats stays cheap. */
 export async function roomsWithPlayer(ctx: MutationCtx, playerId: Id<"players">) {
