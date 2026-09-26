@@ -122,6 +122,7 @@ export function VoiceMenu() {
                     type="button"
                     role="radio"
                     aria-checked={selected}
+                    aria-label={option === "off" ? "Off" : `${STYLE_LABELS[option]}: ${SAMPLES[option](name || SAMPLE_NAME)}`}
                     onClick={() => choose(option)}
                     className={clsx(
                       "flex items-center gap-3 rounded-xl px-2 py-2 text-left transition",
