@@ -13,6 +13,7 @@ import { normalizeCode } from "@convex/lib/game";
 import { errorMessage } from "@/lib/errors";
 import { useSession } from "@/lib/session";
 import { sounds } from "@/lib/sound";
+import { announce } from "@/lib/speech";
 import { useTurnAlerts } from "@/lib/useTurnAlerts";
 import { Board } from "../Board";
 import { GridLines } from "../GridLines";
@@ -198,9 +199,25 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
     }
     if (room.status === "finished" && p.status === "playing") {
       setTimeout(() => (room.winner !== null ? sounds.win() : sounds.draw()), 250);
+      // Seated players also hear the result, after the jingle.
+      if (mySeat !== -1) {
+        const moment = room.winner === null ? "draw" : room.winner === mySeat ? "win" : "lose";
+        const winner = room.winner === null ? undefined : room.seats[room.winner]?.name;
+        setTimeout(() => announce(moment, { winner }), 1100);
+      }
     }
     prev.current = { moveCount: room.moveCount, status: room.status, round: room.round };
-  }, [room.moveCount, room.status, room.round, room.lastMove, room.board, room.winner]);
+  }, [room.moveCount, room.status, room.round, room.lastMove, room.board, room.winner, room.seats, mySeat]);
+
+  // Announce people who take a seat while you're playing (not computers, which the host adds).
+  const prevSeatIds = useRef(room.seats.map((s) => s.playerId));
+  useEffect(() => {
+    const before = prevSeatIds.current;
+    prevSeatIds.current = room.seats.map((s) => s.playerId);
+    if (mySeat === -1) return;
+    const newcomers = room.seats.filter((s) => !s.bot && s.playerId !== me && !before.includes(s.playerId));
+    if (newcomers.length > 0) announce("joined", { name: newcomers[newcomers.length - 1].name });
+  }, [room.seats, mySeat, me]);
 
   useTurnAlerts(myTurn, room.turnEndsAt);
 

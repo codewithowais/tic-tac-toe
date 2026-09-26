@@ -1,9 +1,22 @@
 // Spoken announcements using the browser's built-in text-to-speech (free, no audio files).
+import { STYLES, lineFor, speakableName, type Moment, type VoiceStyle } from "./voiceLines";
 
-const STORAGE_KEY = "ttt.voice";
+export type VoiceSetting = "off" | VoiceStyle;
+/** Moments people can switch on or off. "result" covers win, lose and draw. */
+export type MomentGroup = "turn" | "hurry" | "result" | "joined";
+export const MOMENT_GROUPS: { key: MomentGroup; label: string }[] = [
+  { key: "turn", label: "Your turn" },
+  { key: "hurry", label: "Hurry up (5 seconds left)" },
+  { key: "result", label: "Round result" },
+  { key: "joined", label: "Someone joins" },
+];
+
+const STYLE_KEY = "ttt.voiceStyle";
+const MOMENTS_KEY = "ttt.voiceMoments";
+const LEGACY_KEY = "ttt.voice"; // "0" meant off, before styles existed
 
 // Clear-sounding English voices, best first. Whatever the device has is used otherwise.
-const PREFERRED_VOICES = [
+const PREFERRED_ENGLISH = [
   "Google US English",
   "Samantha",
   "Google UK English Female",
@@ -13,12 +26,9 @@ const PREFERRED_VOICES = [
   "Daniel",
 ];
 
-/** "Owais, it's your turn". Emoji and symbols are dropped so the voice doesn't read them out. */
+/** "Owais, it's your turn". Kept for callers that only need the plain English line. */
 export function turnPhrase(name: string) {
-  const speakable = name
-    .replace(/[^\p{L}\p{M}\p{N}' -]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const speakable = speakableName(name);
   return speakable ? `${speakable}, it's your turn` : "It's your turn";
 }
 
@@ -26,49 +36,105 @@ export function speechSupported() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-let enabled = true;
-try {
-  enabled = typeof localStorage === "undefined" || localStorage.getItem(STORAGE_KEY) !== "0";
-} catch {}
-
-export function isVoiceOn() {
-  return enabled;
-}
-
-export function setVoiceOn(value: boolean) {
-  enabled = value;
+function read(key: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
+    return typeof localStorage === "undefined" ? null : localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function write(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
   } catch {}
-  if (!value && speechSupported()) window.speechSynthesis.cancel();
 }
 
-function pickVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  for (const name of PREFERRED_VOICES) {
-    const match = voices.find((v) => v.name === name);
-    if (match) return match;
+let style: VoiceSetting = (() => {
+  const saved = read(STYLE_KEY);
+  if (saved === "off" || (STYLES as readonly string[]).includes(saved ?? "")) return saved as VoiceSetting;
+  return read(LEGACY_KEY) === "0" ? "off" : "english";
+})();
+
+let moments: Record<MomentGroup, boolean> = (() => {
+  const all = { turn: true, hurry: true, result: true, joined: true };
+  try {
+    return { ...all, ...JSON.parse(read(MOMENTS_KEY) ?? "{}") };
+  } catch {
+    return all;
   }
-  return voices.find((v) => v.lang.toLowerCase().startsWith("en")) ?? null;
+})();
+
+export function getVoiceStyle() {
+  return style;
 }
 
-/** Says `text`, replacing anything still being spoken so announcements never queue up. */
-export function speak(text: string) {
-  if (!enabled || !speechSupported()) return;
+export function setVoiceStyle(next: VoiceSetting) {
+  style = next;
+  write(STYLE_KEY, next);
+  if (next === "off" && speechSupported()) window.speechSynthesis.cancel();
+}
+
+export function getMoments() {
+  return { ...moments };
+}
+
+export function setMoment(key: MomentGroup, on: boolean) {
+  moments = { ...moments, [key]: on };
+  write(MOMENTS_KEY, JSON.stringify(moments));
+}
+
+function voices() {
+  return speechSupported() ? window.speechSynthesis.getVoices() : [];
+}
+
+/** True if the device can speak Urdu, or Hindi as the stand-in. */
+export function hasUrduOrHindiVoice() {
+  return voices().some((v) => /^(ur|hi)/i.test(v.lang));
+}
+
+function voiceFor(lang: "en" | "ur" | "hi") {
+  const all = voices();
+  if (lang === "en") {
+    for (const name of PREFERRED_ENGLISH) {
+      const match = all.find((v) => v.name === name);
+      if (match) return match;
+    }
+  }
+  return all.find((v) => v.lang.toLowerCase().startsWith(lang)) ?? null;
+}
+
+/**
+ * Says `text`. Announcements queue behind each other (e.g. "Sara joined" then
+ * "your turn" when a game starts); `interrupt` cuts off whatever is playing.
+ */
+function say(text: string, lang: "en" | "ur" | "hi", interrupt = false) {
+  if (!speechSupported()) return;
   const synth = window.speechSynthesis;
-  synth.cancel();
+  if (interrupt) synth.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  const voice = pickVoice();
-  if (voice) {
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-  } else {
-    utterance.lang = "en-US";
-  }
-  utterance.rate = 1;
-  utterance.pitch = 1;
+  const voice = voiceFor(lang);
+  if (voice) utterance.voice = voice;
+  utterance.lang = voice?.lang ?? { en: "en-US", ur: "ur-PK", hi: "hi-IN" }[lang];
   utterance.volume = 0.9;
   synth.speak(utterance);
+}
+
+function groupOf(moment: Moment): MomentGroup {
+  return moment === "win" || moment === "lose" || moment === "draw" ? "result" : moment;
+}
+
+/** Speaks the line for `moment` in the chosen style, if that style and moment are switched on. */
+export function announce(moment: Moment, vars: { name?: string; winner?: string } = {}) {
+  if (style === "off" || !moments[groupOf(moment)] || !speechSupported()) return;
+  const line = lineFor(style, moment, vars, voices().map((v) => v.lang));
+  say(line.text, line.lang);
+}
+
+/** Plays a sample of a style (used when picking one), regardless of the current setting. */
+export function previewStyle(next: VoiceStyle, name: string) {
+  const line = lineFor(next, "turn", { name }, voices().map((v) => v.lang));
+  say(line.text, line.lang, true);
 }
 
 // Some browsers (iPhone Safari especially) only allow speech after it has been

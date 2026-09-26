@@ -3,13 +3,13 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "./session";
 import { buzz, sounds } from "./sound";
-import { speak, turnPhrase } from "./speech";
+import { announce } from "./speech";
 
 const HURRY_SECONDS = 5;
 
 /**
- * A chime, a buzz on phones and a spoken "Owais, it's your turn" when the turn
- * passes to you, plus a soft tick for each of your last 5 seconds.
+ * A chime, a buzz on phones and a spoken line when the turn passes to you, plus a
+ * soft tick for each of your last 5 seconds (with a spoken "hurry up" on the first).
  * Nothing plays for the state a page opens in.
  */
 export function useTurnAlerts(myTurn: boolean, turnEndsAt: number | null) {
@@ -21,12 +21,12 @@ export function useTurnAlerts(myTurn: boolean, turnEndsAt: number | null) {
     wasMyTurn.current = myTurn;
     if (!becameMine) return;
     // Wait for the opponent's move sound to finish so the two don't overlap,
-    // then say the player's name once the chime has rung out.
+    // then speak once the chime has rung out.
     const chime = setTimeout(() => {
       sounds.yourTurn();
       buzz([40, 60, 40]);
     }, 180);
-    const voice = setTimeout(() => speak(turnPhrase(name)), 600);
+    const voice = setTimeout(() => announce("turn", { name }), 600);
     return () => {
       clearTimeout(chime);
       clearTimeout(voice);
@@ -45,7 +45,12 @@ export function useTurnAlerts(myTurn: boolean, turnEndsAt: number | null) {
       const delay = turnEndsAt - left * 1000 - now;
       if (delay < -250) continue; // already past this tick
       const urgency = (HURRY_SECONDS - left) / (HURRY_SECONDS - 1);
-      timers.push(setTimeout(() => sounds.tick(urgency), Math.max(0, delay)));
+      timers.push(
+        setTimeout(() => {
+          sounds.tick(urgency);
+          if (left === HURRY_SECONDS) announce("hurry");
+        }, Math.max(0, delay)),
+      );
     }
     return () => timers.forEach(clearTimeout);
   }, [myTurn, turnEndsAt, clockOffset]);
