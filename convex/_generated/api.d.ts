@@ -26,6 +26,7 @@ import type * as players from "../players.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
 import type * as rooms from "../rooms.js";
+import type * as voice from "../voice.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   presence: typeof presence;
   reactions: typeof reactions;
   rooms: typeof rooms;
+  voice: typeof voice;
 }>;
 
 /**

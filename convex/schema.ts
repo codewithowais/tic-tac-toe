@@ -103,6 +103,31 @@ export default defineSchema({
     .index("by_room", ["roomId", "createdAt"])
     .index("by_room_player", ["roomId", "playerId", "createdAt"]),
 
+  // Who is in a room's live voice call. Audio itself goes directly between browsers.
+  voiceMembers: defineTable({
+    roomId: v.id("rooms"),
+    playerId: v.id("players"),
+    name: v.string(),
+    muted: v.boolean(),
+    joinedAt: v.number(),
+  })
+    .index("by_room", ["roomId", "joinedAt"])
+    .index("by_room_player", ["roomId", "playerId"]),
+
+  // Connection-setup messages between two browsers in a voice call (offer, answer,
+  // network candidates). The recipient deletes each one after handling it.
+  voiceSignals: defineTable({
+    roomId: v.id("rooms"),
+    from: v.id("players"),
+    to: v.id("players"),
+    kind: v.union(v.literal("offer"), v.literal("answer"), v.literal("ice")),
+    payload: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_to", ["roomId", "to", "createdAt"])
+    .index("by_from", ["roomId", "from"])
+    .index("by_room", ["roomId"]),
+
   reactions: defineTable({
     roomId: v.id("rooms"),
     playerId: v.id("players"),
