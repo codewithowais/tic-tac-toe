@@ -44,6 +44,7 @@ function newToken() {
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const ensure = useMutation(api.players.ensure);
+  const rename = useMutation(api.players.rename);
   const [loaded, setLoaded] = useState(false);
   const [token, setToken] = useState("");
   const [name, setName] = useState("");
@@ -57,7 +58,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const receivedAt = Date.now();
       setClockOffset(result.now - (sentAt + receivedAt) / 2);
       setPlayerId(result.playerId);
+      // The server's name wins, e.g. after an admin rename or when this browser was merged into another player.
       setName(result.name);
+      writeStorage(NAME_KEY, result.name);
       return result.playerId;
     },
     [ensure],
@@ -80,11 +83,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const saveName = useCallback(
     async (next: string) => {
-      const id = await register(token, next);
-      writeStorage(NAME_KEY, next.trim());
-      return id;
+      if (!playerId) return await register(token, next);
+      const result = await rename({ token, name: next });
+      setName(result.name);
+      writeStorage(NAME_KEY, result.name);
+      return result.playerId;
     },
-    [register, token],
+    [register, rename, token, playerId],
   );
 
   const value = useMemo(

@@ -121,7 +121,7 @@ describe("recording results", () => {
   it("renames the player on the board when they change their nickname", async () => {
     const t = setup();
     const { ali } = await aliBeatsSara(t);
-    await t.mutation(api.players.ensure, { token: ali.token, name: "Ali the Great" });
+    await t.mutation(api.players.rename, { token: ali.token, name: "Ali the Great" });
     const { rows } = await t.query(api.leaderboard.top, { period: "all" });
     expect(rows[0].name).toBe("Ali the Great");
     expect((await t.query(api.leaderboard.top, { period: week() })).rows[0].name).toBe("Ali the Great");

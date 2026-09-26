@@ -35,7 +35,7 @@ describe("renaming yourself", () => {
     const two = await t.mutation(api.rooms.create, { token: sara.token, settings: TRIO });
     await t.mutation(api.rooms.join, { token: ali.token, code: two });
 
-    const result = await t.mutation(api.players.ensure, { token: ali.token, name: "  Ali   Khan " });
+    const result = await t.mutation(api.players.rename, { token: ali.token, name: "  Ali   Khan " });
     expect(result.name).toBe("Ali Khan");
 
     const names = async (code: string) => (await t.query(api.rooms.get, { code }))!.seats.map((s) => s.name);
@@ -52,7 +52,7 @@ describe("renaming yourself", () => {
     await t.mutation(api.game.move, { token: ali.token, code, cell: 4 });
     const before = await t.query(api.rooms.get, { code });
 
-    await t.mutation(api.players.ensure, { token: sara.token, name: "Sara B" });
+    await t.mutation(api.players.rename, { token: sara.token, name: "Sara B" });
     const after = await t.query(api.rooms.get, { code });
     expect(after).toEqual({ ...before, seats: [before!.seats[0], { ...before!.seats[1], name: "Sara B" }] });
   });
@@ -66,13 +66,20 @@ describe("renaming yourself", () => {
     for (const [p, cell] of [[ali, 0], [sara, 3], [ali, 1], [sara, 4], [ali, 2]] as const) {
       await t.mutation(api.game.move, { token: p.token, code, cell });
     }
-    await t.mutation(api.players.ensure, { token: ali.token, name: "Champ" });
+    await t.mutation(api.players.rename, { token: ali.token, name: "Champ" });
     expect((await t.query(api.leaderboard.top, { period: "all" })).rows[0].name).toBe("Champ");
+  });
+
+  it("never renames on a normal visit: the saved server name wins", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const again = await t.mutation(api.players.ensure, { token: ali.token, name: "Something else" });
+    expect(again).toEqual(expect.objectContaining({ playerId: ali.playerId, name: "Ali" }));
   });
 
   it("rejects an empty name", async () => {
     const t = setup();
     const ali = await player(t, "Ali");
-    await expect(t.mutation(api.players.ensure, { token: ali.token, name: "   " })).rejects.toThrow("can't be empty");
+    await expect(t.mutation(api.players.rename, { token: ali.token, name: "   " })).rejects.toThrow("can't be empty");
   });
 });
