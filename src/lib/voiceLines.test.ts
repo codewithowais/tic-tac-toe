@@ -46,12 +46,12 @@ describe("lineFor", () => {
   });
 
   it("uses Urdu script when the device has an Urdu voice", () => {
-    expect(lineFor("urdu", "turn", { name: "Owais" }, UR, first)).toEqual({ text: "Owais، آپ کی باری ہے", lang: "ur" });
+    expect(lineFor("urdu", "turn", { name: "Owais" }, UR, first)).toEqual({ text: "Owais، آپ کی باری", lang: "ur" });
   });
 
   it("falls back to a Hindi voice with the same words in Devanagari", () => {
-    expect(lineFor("urdu", "turn", { name: "Owais" }, HI, first)).toEqual({ text: "Owais, आपकी बारी है", lang: "hi" });
-    expect(lineFor("desi", "turn", { name: "Owais" }, HI, first)).toEqual({ text: "चल Owais, तेरी बारी!", lang: "hi" });
+    expect(lineFor("urdu", "turn", { name: "Owais" }, HI, first)).toEqual({ text: "Owais, आपकी बारी", lang: "hi" });
+    expect(lineFor("desi", "turn", { name: "Owais" }, HI, first)).toEqual({ text: "चल Owais, तेरी बारी", lang: "hi" });
   });
 
   it("falls back to English when there's no Urdu or Hindi voice", () => {
@@ -62,6 +62,19 @@ describe("lineFor", () => {
   it("cleans names so emoji and symbols aren't read out", () => {
     expect(lineFor("english", "joined", { name: "🔥Sara🔥" }, EN, first).text).toBe("Sara joined the game");
     expect(lineFor("english", "turn", { name: "🔥" }, EN, first).text).toBe("It's your turn");
+  });
+
+  it("never spells English words inside Urdu or Hindi lines, which the voice would mispronounce", () => {
+    for (const style of ["urdu", "desi"] as const) {
+      const pack = packs[style];
+      for (const set of [pack.urdu, pack.hindi]) {
+        for (const moment of MOMENTS) {
+          for (const line of set[moment]) {
+            expect(line.replace(/\{(name|winner)\}/g, ""), `${style} ${moment}`).not.toMatch(/[A-Za-z]/);
+          }
+        }
+      }
+    }
   });
 
   it("picks different variations", () => {

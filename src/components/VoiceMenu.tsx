@@ -25,8 +25,8 @@ const SAMPLES: Record<VoiceSetting, (name: string) => string> = {
   off: () => "No spoken announcements",
   english: (n) => `${n}, it's your turn`,
   "english-slang": (n) => `Yo ${n}, you're up!`,
-  urdu: (n) => `${n}, aap ki baari hai`,
-  desi: (n) => `Chal ${n}, teri baari!`,
+  urdu: (n) => `${n}, aap ki baari`,
+  desi: (n) => `Chal ${n}, teri baari`,
 };
 
 /** Header button that opens voice settings: style (or off) and which moments are spoken. */

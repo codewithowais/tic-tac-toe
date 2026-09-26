@@ -18,51 +18,58 @@ const english: Lines = {
   joined: ["{name} joined the game", "{name} is here, let's play"],
 };
 
+// How friends actually talk while playing: short, casual, and never "Player 2 has moved".
 const englishSlang: Lines = {
-  turn: ["Yo {name}, you're up!", "{name}, your move. Let's go!", "You're on the clock, {name}"],
-  hurry: ["Clock's ticking!", "Hurry up, five seconds!", "Tick tock, make a move!"],
-  win: ["Let's go! You won!", "GG, you crushed it!", "Easy win!"],
-  lose: ["Oof, {winner} got you this time", "{winner} takes the W", "Unlucky! {winner} wins"],
-  draw: ["Stalemate! Nobody wins", "It's a tie, run it back"],
-  joined: ["{name} just pulled up, let's play!", "{name} is in the house!"],
+  turn: ["Yo {name}, you're up!", "Your go, {name}", "Alright {name}, show us what you've got"],
+  hurry: ["Clock's ticking!", "Come on, make a move!", "Five seconds, hurry up!"],
+  win: ["Let's go! You won!", "GG, that was clean", "Too easy!"],
+  lose: ["Oof, {winner} got you", "{winner} takes this one", "Unlucky, {winner} wins"],
+  draw: ["Draw! Nobody wins", "It's a tie. Run it back?"],
+  joined: ["{name} just joined, let's go!", "{name}'s here, game on!"],
 };
 
 // Urdu and Desi lines exist twice with the same meaning: Urdu script for Urdu voices,
 // and Devanagari for Hindi voices (spoken Hindi and Urdu sound almost the same).
+// Everyday words people really say ("baari", "time", "game", "draw") are written in the
+// voice's own script, because English spelled inside an Urdu or Hindi line gets mispronounced.
+// Lines avoid gendered verbs where possible ("{winner} ne hara diya", "aa gaye").
+
+/** Polite, everyday Urdu ("aap"), the way you'd talk to anyone. */
 const urdu: Lines = {
-  turn: ["{name}، آپ کی باری ہے", "{name}، اب آپ کی چال ہے"],
-  hurry: ["جلدی کریں، صرف پانچ سیکنڈ!", "وقت ختم ہونے والا ہے!"],
-  win: ["مبارک ہو، آپ جیت گئے!", "شاباش! یہ راؤنڈ آپ کا ہے"],
-  lose: ["{winner} جیت گئے", "افسوس، اس بار {winner} جیت گئے"],
-  draw: ["مقابلہ برابر رہا", "کوئی نہیں جیتا، برابر!"],
-  joined: ["{name} آ گئے، چلیں کھیلیں!", "خوش آمدید {name}!"],
+  turn: ["{name}، آپ کی باری", "{name}، چلیں آپ کی باری ہے", "اب آپ کھیلیں، {name}"],
+  hurry: ["جلدی کریں، ٹائم ختم ہو رہا ہے", "بس پانچ سیکنڈ رہ گئے"],
+  win: ["واہ! آپ جیت گئے", "زبردست، یہ گیم آپ کی"],
+  lose: ["اس بار {winner} جیت گئے", "{winner} بازی لے گئے"],
+  draw: ["گیم برابر رہی", "کوئی نہیں جیتا، ڈرا ہو گیا"],
+  joined: ["{name} آ گئے ہیں، چلیں شروع کریں", "{name} بھی آ گئے"],
 };
 
 const urduInDevanagari: Lines = {
-  turn: ["{name}, आपकी बारी है", "{name}, अब आपकी चाल है"],
-  hurry: ["जल्दी करें, सिर्फ़ पाँच सेकंड!", "वक़्त ख़त्म होने वाला है!"],
-  win: ["मुबारक हो, आप जीत गए!", "शाबाश! ये राउंड आपका है"],
-  lose: ["{winner} जीत गए", "अफ़सोस, इस बार {winner} जीत गए"],
-  draw: ["मुक़ाबला बराबर रहा", "कोई नहीं जीता, बराबर!"],
-  joined: ["{name} आ गए, चलिए खेलें!", "ख़ुश आमदीद {name}!"],
+  turn: ["{name}, आपकी बारी", "{name}, चलिए आपकी बारी है", "अब आप खेलिए, {name}"],
+  hurry: ["जल्दी करें, टाइम ख़त्म हो रहा है", "बस पाँच सेकंड रह गए"],
+  win: ["वाह! आप जीत गए", "ज़बरदस्त, ये गेम आपकी"],
+  lose: ["इस बार {winner} जीत गए", "{winner} बाज़ी ले गए"],
+  draw: ["गेम बराबर रही", "कोई नहीं जीता, ड्रॉ हो गया"],
+  joined: ["{name} आ गए हैं, चलिए शुरू करें", "{name} भी आ गए"],
 };
 
+/** Casual Pakistani friend talk ("tu", "yaar", "chal", "oye"). */
 const desi: Lines = {
-  turn: ["چل {name}، تیری باری!", "{name} یار، اب تو کھیل", "{name}، your turn، جلدی سے"],
-  hurry: ["جلدی کر یار!", "اوئے، ٹائم ختم ہو رہا ہے!", "بس پانچ سیکنڈ، چل چل!"],
-  win: ["واہ یار، چھا گئے!", "کیا بات ہے، جیت گئے!", "زبردست! easy win"],
-  lose: ["اوہو، {winner} لے گئے", "کوئی بات نہیں، اگلی بار! {winner} جیت گئے"],
-  draw: ["برابر! پھر سے کھیلو", "نہ تم جیتے نہ ہم، draw!"],
-  joined: ["{name} آ گئے یار، شروع کرو!", "لو جی، {name} بھی آ گئے!"],
+  turn: ["چل {name}، تیری باری", "{name} یار، چل کھیل اب", "اوئے {name}، تیری باری ہے"],
+  hurry: ["جلدی کر یار", "ٹائم ختم ہو رہا ہے، جلدی", "سو تو نہیں گئے؟ چلو کھیلو"],
+  win: ["واہ یار، کمال کر دیا", "چھا گئے استاد", "جیت گئے بھئی"],
+  lose: ["اس بار {winner} کی جیت", "{winner} نے ہرا دیا یار"],
+  draw: ["برابر! ایک اور ہو جائے", "ڈرا ہو گیا، چل دوبارہ"],
+  joined: ["{name} بھی آ گئے، چلو شروع کرو", "لو جی، {name} آ گئے"],
 };
 
 const desiInDevanagari: Lines = {
-  turn: ["चल {name}, तेरी बारी!", "{name} यार, अब तू खेल", "{name}, your turn, जल्दी से"],
-  hurry: ["जल्दी कर यार!", "ओए, टाइम ख़त्म हो रहा है!", "बस पाँच सेकंड, चल चल!"],
-  win: ["वाह यार, छा गए!", "क्या बात है, जीत गए!", "ज़बरदस्त! easy win"],
-  lose: ["ओहो, {winner} ले गए", "कोई बात नहीं, अगली बार! {winner} जीत गए"],
-  draw: ["बराबर! फिर से खेलो", "न तुम जीते न हम, draw!"],
-  joined: ["{name} आ गए यार, शुरू करो!", "लो जी, {name} भी आ गए!"],
+  turn: ["चल {name}, तेरी बारी", "{name} यार, चल खेल अब", "ओए {name}, तेरी बारी है"],
+  hurry: ["जल्दी कर यार", "टाइम ख़त्म हो रहा है, जल्दी", "सो तो नहीं गए? चलो खेलो"],
+  win: ["वाह यार, कमाल कर दिया", "छा गए उस्ताद", "जीत गए भई"],
+  lose: ["इस बार {winner} की जीत", "{winner} ने हरा दिया यार"],
+  draw: ["बराबर! एक और हो जाए", "ड्रॉ हो गया, चल दोबारा"],
+  joined: ["{name} भी आ गए, चलो शुरू करो", "लो जी, {name} आ गए"],
 };
 
 export const packs = {
