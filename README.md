@@ -6,6 +6,8 @@ Live, multiplayer tic-tac-toe for 2–4 players. Create a room, share the link, 
 - **Play vs the computer:** go solo, or have the host fill open seats with computers. Pick Easy, Medium or Hard for each one (Hard can't be beaten on 3×3)
 - **Leaderboard** at `/leaderboard`: this week (resets Monday 00:00 UTC) and all time. Every win counts, including against the computer
 - **Admin** at `/admin` (passcode): manage rooms, rename or remove players, reset leaderboards, usage overview
+- **Chat** in every room (players and spectators), and **live voice chat** for up to 4 people: direct browser-to-browser audio using Google's free STUN servers, so it costs nothing. Networks that block direct connections would need a TURN relay (not set up)
+- **Spoken announcements** in English, English slang, Urdu or Desi mix, with a chime and hurry-up ticks
 - Nicknames and a running score per room, online presence, emoji reactions, and a turn timer (15/30/60s; if it runs out, the server makes a random move for you)
 - Light (“paper”) and dark (“chalkboard”) themes, sound effects, keyboard play (arrow keys + Enter), works on phones
 
@@ -66,6 +68,8 @@ convex/
   admin.ts         passcode login and admin tools; lib/admin.ts checks sessions
   game.ts          move, rematch, turn-timeout job, computer moves
   lib/bot.ts       computer opponent: win, block, fork, heuristics; perfect play on 3×3
+  chat.ts          room chat (rate-limited)
+  voice.ts         voice call members and WebRTC signalling mailbox (audio is peer-to-peer)
   reactions.ts     emoji reactions (rate-limited)
   presence.ts      online status via @convex-dev/presence
 src/
