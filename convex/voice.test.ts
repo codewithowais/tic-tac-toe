@@ -59,15 +59,43 @@ describe("voice members", () => {
     expect(await t.query(api.voice.members, { roomId })).toHaveLength(0);
   });
 
-  it("caps a voice call at 4 people", async () => {
+  /** Marks a player as online in the room, the way an open tab's heartbeat does. */
+  async function goOnline(t: T, code: string, playerId: string) {
+    await t.mutation(api.presence.heartbeat, { roomId: code, userId: playerId, sessionId: `s-${playerId}`, interval: 10_000 });
+  }
+
+  it("caps a voice call at 4 people who are online", async () => {
     const t = setup();
     const { code } = await room(t);
     for (const n of ["A", "B", "C", "D"]) {
       const p = await player(t, n);
+      await goOnline(t, code, p.playerId);
       await t.mutation(api.voice.join, { token: p.token, code });
     }
     const late = await player(t, "E");
     await expect(t.mutation(api.voice.join, { token: late.token, code })).rejects.toThrow("full");
+  });
+
+  it("frees places held by people who vanished without leaving (closed or crashed tabs)", async () => {
+    const t = setup();
+    const { code, roomId } = await room(t);
+    const ghosts = [];
+    for (const n of ["A", "B", "C"]) {
+      const p = await player(t, n);
+      ghosts.push(p);
+      await t.mutation(api.voice.join, { token: p.token, code }); // never online: their tab is gone
+    }
+    const here = await player(t, "D");
+    await goOnline(t, code, here.playerId);
+    await t.mutation(api.voice.join, { token: here.token, code });
+
+    const late = await player(t, "E");
+    await goOnline(t, code, late.playerId);
+    await t.mutation(api.voice.join, { token: late.token, code });
+
+    const names = (await t.query(api.voice.members, { roomId })).map((m) => m.name);
+    expect(names).toEqual(["D", "E"]); // the three ghosts were removed, the online member kept
+    expect(ghosts.length).toBe(3);
   });
 });
 

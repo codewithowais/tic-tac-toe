@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { requirePlayer } from "./lib/auth";
+import { presence } from "./presence";
 import { requireRoom } from "./rooms";
 
 // A mesh call sends everyone's audio to everyone else, so it stays small.
@@ -41,10 +42,20 @@ export const join = mutation({
       await ctx.db.patch(existing._id, { joinedAt: Date.now(), name: player.name });
       return;
     }
-    const members = await ctx.db
+    let members = await ctx.db
       .query("voiceMembers")
       .withIndex("by_room", (q) => q.eq("roomId", room._id))
       .collect();
+    if (members.length >= MAX_MEMBERS) {
+      // Someone whose tab was killed or crashed never sends "leave". Free their place if
+      // the room's presence says they're gone, so ghosts can't keep a call full.
+      const online = new Set((await presence.listRoom(ctx, room.code, true)).map((p) => p.userId));
+      for (const m of members.filter((m) => !online.has(m.playerId))) {
+        await ctx.db.delete(m._id);
+        await clearSignals(ctx, room._id, m.playerId);
+      }
+      members = members.filter((m) => online.has(m.playerId));
+    }
     if (members.length >= MAX_MEMBERS) throw new ConvexError(`Voice is full (${MAX_MEMBERS} people max)`);
     await ctx.db.insert("voiceMembers", {
       roomId: room._id,

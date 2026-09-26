@@ -16,6 +16,7 @@ type Member = { playerId: Id<"players">; name: string; muted: boolean; joinedAt:
 type Signal = { _id: Id<"voiceSignals">; from: Id<"players">; kind: "offer" | "answer" | "ice"; payload: string };
 
 export type Voice = {
+  /** People in the call who are online (you included). */
   members: Member[];
   joined: boolean;
   joining: boolean;
@@ -294,5 +295,9 @@ export function useVoice(roomId: Id<"rooms">, code: string, me: Id<"players">, o
     if (wantJoined.current) leaveRef.current();
   }, []);
 
-  return { members, joined, joining, muted, listenOnly, peers, speaking, join, leave, toggleMute };
+  // Only list people who are actually here: a crashed or killed tab can leave a stale member
+  // behind until the server frees the place, and they shouldn't look like they're in the call.
+  const present = members.filter((m) => m.playerId === me || online.has(m.playerId));
+
+  return { members: present, joined, joining, muted, listenOnly, peers, speaking, join, leave, toggleMute };
 }
