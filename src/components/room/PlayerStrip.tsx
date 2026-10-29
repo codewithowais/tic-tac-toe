@@ -89,14 +89,36 @@ function PlayerChip({
   onKick: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  // Crowded rooms get tighter cards whose names wrap instead of being cut off.
+  const compact = room.settings.maxPlayers > 4;
   const active = room.status === "playing" && room.turn === index;
   const won = room.status === "finished" && room.winner === index;
   const color = seatColor(index);
 
+  // What goes under the name. Crowded rooms leave out the always-true captions to save space.
+  const subtitle = active && bot ? (
+    <Thinking />
+  ) : active ? (
+    <TurnClock endsAt={room.turnEndsAt} />
+  ) : ready && !bot ? (
+    <span className="font-medium text-ink">{compact ? "Ready" : "Ready for another round"}</span>
+  ) : won ? (
+    <span style={{ color }}>Won the round</span>
+  ) : !online ? (
+    "Offline"
+  ) : isMe ? (
+    "You"
+  ) : bot ? (
+    compact ? null : "Computer"
+  ) : compact ? null : (
+    "\u00a0"
+  );
+
   return (
     <li
       className={clsx(
-        "relative flex min-h-[76px] items-center gap-2.5 overflow-hidden rounded-2xl border bg-surface px-3 py-2.5 transition-[border-color,box-shadow] duration-300",
+        "relative flex items-center overflow-hidden rounded-2xl border bg-surface transition-[border-color,box-shadow] duration-300",
+        compact ? "min-h-[64px] gap-2 px-2.5 py-2" : "min-h-[76px] gap-2.5 px-3 py-2.5",
         !active && !won && "border-line",
         canKick && "pr-8",
       )}
@@ -108,7 +130,7 @@ function PlayerChip({
       aria-current={active ? "step" : undefined}
     >
       <div className="relative shrink-0">
-        <Mark seat={index} strokeWidth={12} className="h-7 w-7" />
+        <Mark seat={index} strokeWidth={12} className={compact ? "h-6 w-6" : "h-7 w-7"} />
         {bot ? (
           <span
             className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-surface bg-ink text-bg"
@@ -128,11 +150,18 @@ function PlayerChip({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1">
+        <div className={clsx("flex gap-1", compact ? "items-start" : "items-center")}>
           {editing ? (
             <NameEditor onDone={() => setEditing(false)} className="w-full" />
           ) : (
-            <span className="truncate font-semibold">{name}</span>
+            <span
+              className={clsx(
+                "font-semibold",
+                compact ? "line-clamp-2 min-w-0 text-sm leading-tight [overflow-wrap:anywhere]" : "truncate",
+              )}
+            >
+              {name}
+            </span>
           )}
           {isMe && !editing && (
             <button
@@ -166,25 +195,7 @@ function PlayerChip({
             </svg>
           )}
         </div>
-        <div className="text-xs text-muted">
-          {active && bot ? (
-            <Thinking />
-          ) : active ? (
-            <TurnClock endsAt={room.turnEndsAt} />
-          ) : ready && !bot ? (
-            <span className="font-medium text-ink">Ready for another round</span>
-          ) : won ? (
-            <span style={{ color }}>Won the round</span>
-          ) : !online ? (
-            "Offline"
-          ) : isMe ? (
-            "You"
-          ) : bot ? (
-            "Computer"
-          ) : (
-            " "
-          )}
-        </div>
+        {subtitle !== null && <div className={clsx("text-xs text-muted", compact && "mt-0.5")}>{subtitle}</div>}
       </div>
 
       <motion.span
@@ -192,7 +203,7 @@ function PlayerChip({
         initial={{ scale: 1.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 18 }}
-        className={clsx("font-display font-bold tabular-nums leading-none", room.settings.maxPlayers > 3 ? "text-2xl" : "text-3xl")}
+        className={clsx("font-display font-bold tabular-nums leading-none", compact ? "text-xl" : room.settings.maxPlayers > 3 ? "text-2xl" : "text-3xl")}
         aria-label={`${score} wins`}
       >
         {score}
