@@ -10,7 +10,7 @@ export default function Home() {
         <section className="flex min-w-0 flex-col gap-6 sm:gap-8">
           <div className="flex flex-col gap-4">
             <h1 className="font-display text-[clamp(2.25rem,6vw,4.5rem)] font-extrabold leading-[0.95] tracking-[-0.035em] text-balance">
-              Three in a row, with up to four friends.
+              Three in a row, with a whole crowd of friends.
             </h1>
             <p className="max-w-md text-lg leading-relaxed text-muted text-pretty">
               Make a room, send the link, and play live. Anyone else with the link can watch. No sign-up.

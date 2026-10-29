@@ -15,7 +15,7 @@ const instrument = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: "Tic-tac-toe with friends",
-  description: "Play tic-tac-toe live with up to four friends. Share a link, no sign-up.",
+  description: "Play tic-tac-toe live with a crowd of friends. Share a link, no sign-up.",
 };
 
 export const viewport: Viewport = {
