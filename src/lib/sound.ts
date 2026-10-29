@@ -41,7 +41,8 @@ function tone(freq: number, start: number, duration: number, volume = 0.08, type
 }
 
 // Each seat gets its own pitch so you can hear who moved.
-const SEAT_PITCH = [523.25, 392.0, 659.25, 440.0];
+// A pentatonic scale across two octaves, so every seat sounds different but nothing clashes.
+const SEAT_PITCH = [523.25, 392.0, 659.25, 440.0, 587.33, 783.99, 349.23, 880.0, 493.88, 698.46, 329.63, 987.77];
 
 export const sounds = {
   move: (seat: number) => tone(SEAT_PITCH[seat] ?? 500, 0, 0.14, 0.07, "triangle"),
