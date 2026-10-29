@@ -362,3 +362,81 @@ describe("computer players", () => {
     expect((await t.query(api.rooms.get, { code }))?.seats.map((s) => s.name)).toEqual(["Ali"]);
   });
 });
+
+describe("big games", () => {
+  const BIG = { maxPlayers: 8, size: 9, winLength: 5, turnSeconds: 30 };
+
+  it("starts when all 12 seats are filled and turns go round every seat", async () => {
+    const t = setup();
+    const names = Array.from({ length: 12 }, (_, i) => `P${i + 1}`);
+    const players = [];
+    for (const n of names) players.push(await player(t, n));
+    const settings = { maxPlayers: 12, size: 13, winLength: 5, turnSeconds: 30 };
+    const code = await t.mutation(api.rooms.create, { token: players[0].token, settings });
+    for (const p of players.slice(1, 11)) await t.mutation(api.rooms.join, { token: p.token, code });
+    expect((await t.query(api.rooms.get, { code }))?.status).toBe("lobby");
+    await t.mutation(api.rooms.join, { token: players[11].token, code });
+    let room = await t.query(api.rooms.get, { code });
+    expect(room?.status).toBe("playing");
+    expect(room?.seats).toHaveLength(12);
+
+    for (let i = 0; i < 12; i++) await play(t, code, players[i].token, i); // one move each, in seat order
+    room = await t.query(api.rooms.get, { code });
+    expect(room?.moveCount).toBe(12);
+    expect(room?.turn).toBe(0);
+    expect(room?.board.slice(0, 12)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+
+    const extra = await player(t, "Extra");
+    await expect(t.mutation(api.rooms.join, { token: extra.token, code })).rejects.toThrow();
+  });
+
+  it("lets computers fill an 8-player room, each taking its turn after you", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const code = await t.mutation(api.rooms.create, {
+      token: ali.token,
+      settings: BIG,
+      bots: ["easy", "medium", "hard", "easy", "medium", "hard", "easy"],
+    });
+    expect((await t.query(api.rooms.get, { code }))?.seats).toHaveLength(8);
+    await play(t, code, ali.token, 40);
+    for (let i = 0; i < 7; i++) {
+      vi.advanceTimersByTime(1200);
+      await t.finishInProgressScheduledFunctions();
+    }
+    const room = await t.query(api.rooms.get, { code });
+    expect(room?.moveCount).toBe(8);
+    expect(room?.turn).toBe(0);
+    expect(new Set(room?.board.filter((c) => c !== null))).toEqual(new Set([0, 1, 2, 3, 4, 5, 6, 7]));
+  });
+
+  it("refuses more than 12 players, boards over 15×15, and boards too small for the crowd", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const create = (settings: typeof BIG) => t.mutation(api.rooms.create, { token: ali.token, settings });
+    await expect(create({ ...BIG, maxPlayers: 13, size: 15 })).rejects.toThrow(/between 2 and 12/);
+    await expect(create({ ...BIG, size: 16 })).rejects.toThrow(/between 3 and 15/);
+    await expect(create({ ...BIG, size: 8 })).rejects.toThrow(/at least a 9×9/);
+    await expect(create({ ...BIG, winLength: 10 })).rejects.toThrow(/between 3 and 9/);
+  });
+
+  it("allows a win line as long as the board", async () => {
+    const t = setup();
+    const ali = await player(t, "Ali");
+    const sara = await player(t, "Sara");
+    const code = await t.mutation(api.rooms.create, {
+      token: ali.token,
+      settings: { maxPlayers: 2, size: 6, winLength: 6, turnSeconds: 30 },
+    });
+    await t.mutation(api.rooms.join, { token: sara.token, code });
+    // Ali fills the whole top row (cells 0-5) while Sara plays the second row.
+    for (let i = 0; i < 6; i++) {
+      await play(t, code, ali.token, i);
+      if (i < 5) await play(t, code, sara.token, 6 + i);
+    }
+    const room = await t.query(api.rooms.get, { code });
+    expect(room?.status).toBe("finished");
+    expect(room?.winner).toBe(0);
+    expect(room?.winLine).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+});

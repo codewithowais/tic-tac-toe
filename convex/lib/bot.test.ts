@@ -92,3 +92,33 @@ describe("hard on 3×3", () => {
     expect(explore(Array(9).fill(null), 1, 1)).toBe(true);
   });
 });
+
+describe("big games", () => {
+  it("blocks the nearest threatening opponent first, even with 10 players", () => {
+    const b: Cell[] = Array.from({ length: 121 }, () => null);
+    b[0] = b[1] = 3; // seat 3 moves right after us and threatens cell 2
+    b[55] = b[56] = 9; // seat 9 also threatens cell 57, but moves last
+    const move = chooseMove({ board: b, size: 11, winLength: 3, seat: 2, players: 10, level: "hard", rand: first });
+    expect(move).toBe(2);
+  });
+
+  it("takes its own win on a huge board with very long lines", () => {
+    const b: Cell[] = Array.from({ length: 225 }, () => null);
+    for (let c = 0; c < 14; c++) b[c] = 5; // 14 of 15 in a row
+    for (const level of LEVELS) {
+      expect(chooseMove({ board: b, size: 15, winLength: 15, seat: 5, players: 12, level, rand: first })).toBe(14);
+    }
+  });
+
+  it("answers quickly on the biggest board with the most players", () => {
+    let seed = 11;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const b: Cell[] = Array.from({ length: 225 }, () => (rand() < 0.35 ? Math.floor(rand() * 12) : null));
+    const started = performance.now();
+    for (const level of LEVELS) {
+      const move = chooseMove({ board: b, size: 15, winLength: 5, seat: 4, players: 12, level, rand });
+      expect(b[move]).toBeNull();
+    }
+    expect(performance.now() - started).toBeLessThan(1500);
+  });
+});

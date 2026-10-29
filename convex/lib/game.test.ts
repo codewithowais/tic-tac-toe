@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findWinAt, isBoardFull, nextSeat, validateSettings, MODES } from "./game";
+import { findWinAt, isBoardFull, nextSeat, validateSettings, MAX_PLAYERS, MAX_SIZE, MODES, SEATS } from "./game";
 
 // Builds a board from rows like "X.O" where X=0, O=1, T=2, S=3, .=empty.
 function board(...rows: string[]) {
@@ -70,21 +70,51 @@ describe("nextSeat", () => {
 });
 
 describe("validateSettings", () => {
+  const ok = (maxPlayers: number, size: number, winLength: number) => ({ maxPlayers, size, winLength, turnSeconds: 30 });
+
   it("accepts every preset", () => {
     for (const mode of Object.values(MODES)) {
       expect(() => validateSettings({ ...mode, turnSeconds: 30 })).not.toThrow();
     }
   });
 
+  it("allows up to 12 players and a 15×15 board", () => {
+    expect(MAX_PLAYERS).toBe(12);
+    expect(MAX_SIZE).toBe(15);
+    for (const [players, size] of [[5, 6], [6, 7], [8, 9], [12, 13], [12, 15], [2, 15], [2, 3]]) {
+      expect(() => validateSettings(ok(players, size, 3))).not.toThrow();
+    }
+  });
+
+  it("lets the win length go as far as the board is wide", () => {
+    expect(() => validateSettings(ok(2, 3, 3))).not.toThrow();
+    expect(() => validateSettings(ok(2, 10, 10))).not.toThrow();
+    expect(() => validateSettings(ok(3, 15, 15))).not.toThrow();
+    expect(() => validateSettings(ok(2, 10, 11))).toThrow(/between 3 and 10/);
+    expect(() => validateSettings(ok(2, 10, 2))).toThrow(/between 3 and 10/);
+  });
+
   it("rejects bad values", () => {
-    expect(() => validateSettings({ maxPlayers: 5, size: 5, winLength: 3, turnSeconds: 30 })).toThrow();
-    expect(() => validateSettings({ maxPlayers: 2, size: 8, winLength: 3, turnSeconds: 30 })).toThrow();
-    expect(() => validateSettings({ maxPlayers: 2, size: 3, winLength: 4, turnSeconds: 30 })).toThrow();
-    expect(() => validateSettings({ maxPlayers: 2, size: 3, winLength: 3, turnSeconds: 10 })).toThrow();
+    expect(() => validateSettings(ok(13, 15, 3))).toThrow(/between 2 and 12/);
+    expect(() => validateSettings(ok(1, 5, 3))).toThrow(/between 2 and 12/);
+    expect(() => validateSettings(ok(2, 16, 3))).toThrow(/between 3 and 15/);
+    expect(() => validateSettings(ok(2, 2, 3))).toThrow(/between 3 and 15/);
+    expect(() => validateSettings(ok(2, 3, 4))).toThrow();
+    expect(() => validateSettings({ ...ok(2, 3, 3), turnSeconds: 10 })).toThrow();
   });
 
   it("rejects boards too small for the number of players", () => {
     // 4 players on 3x3 would leave barely 2 moves each
-    expect(() => validateSettings({ maxPlayers: 4, size: 3, winLength: 3, turnSeconds: 30 })).toThrow();
+    expect(() => validateSettings(ok(4, 3, 3))).toThrow(/at least a 5×5/);
+    expect(() => validateSettings(ok(8, 8, 3))).toThrow(/at least a 9×9/);
+    expect(() => validateSettings(ok(12, 12, 3))).toThrow(/at least a 13×13/);
+  });
+});
+
+describe("seats", () => {
+  it("has a distinct symbol and name for every possible player", () => {
+    expect(SEATS).toHaveLength(MAX_PLAYERS);
+    expect(new Set(SEATS.map((s) => s.symbol)).size).toBe(MAX_PLAYERS);
+    expect(new Set(SEATS.map((s) => s.label)).size).toBe(MAX_PLAYERS);
   });
 });

@@ -20,15 +20,18 @@ export type ModeKey = keyof typeof MODES;
 
 export const TURN_SECONDS = [15, 30, 60] as const;
 export const MIN_SIZE = 3;
-export const MAX_SIZE = 7;
-export const MAX_WIN_LENGTH = 5;
+export const MAX_SIZE = 15;
+export const MIN_PLAYERS = 2;
+/** Every player needs their own shape and colour, so this is also the number of SEATS. */
+export const MAX_PLAYERS = 12;
+export const MIN_WIN_LENGTH = 3;
 
 export const REACTIONS = ["👍", "😂", "🔥", "😮", "😤", "🎉", "🤝", "👀"] as const;
 
 /** Returns an error message for invalid settings, or null if they are fine. */
 export function settingsError(s: Settings): string | null {
-  if (!Number.isInteger(s.maxPlayers) || s.maxPlayers < 2 || s.maxPlayers > 4) {
-    return "Players must be between 2 and 4";
+  if (!Number.isInteger(s.maxPlayers) || s.maxPlayers < MIN_PLAYERS || s.maxPlayers > MAX_PLAYERS) {
+    return `Players must be between ${MIN_PLAYERS} and ${MAX_PLAYERS}`;
   }
   if (!Number.isInteger(s.size) || s.size < MIN_SIZE || s.size > MAX_SIZE) {
     return `Board size must be between ${MIN_SIZE} and ${MAX_SIZE}`;
@@ -36,9 +39,9 @@ export function settingsError(s: Settings): string | null {
   if (s.size < s.maxPlayers + 1 && s.maxPlayers > 2) {
     return `${s.maxPlayers} players need at least a ${s.maxPlayers + 1}×${s.maxPlayers + 1} board`;
   }
-  const maxWin = Math.min(s.size, MAX_WIN_LENGTH);
-  if (!Number.isInteger(s.winLength) || s.winLength < 3 || s.winLength > maxWin) {
-    return `Win length must be between 3 and ${maxWin}`;
+  // A winning line can be as long as the board is wide.
+  if (!Number.isInteger(s.winLength) || s.winLength < MIN_WIN_LENGTH || s.winLength > s.size) {
+    return `Win length must be between ${MIN_WIN_LENGTH} and ${s.size}`;
   }
   if (!(TURN_SECONDS as readonly number[]).includes(s.turnSeconds)) {
     return "Turn timer must be 15, 30 or 60 seconds";
@@ -104,12 +107,20 @@ export function emptyBoard(size: number): Cell[] {
   return Array.from({ length: size * size }, () => null);
 }
 
-/** Symbols and names for each seat, used by the UI. */
+/** Symbols and names for each seat, used by the UI. Each seat also has its own colour and drawn shape. */
 export const SEATS = [
   { symbol: "X", label: "Cross" },
   { symbol: "O", label: "Circle" },
   { symbol: "△", label: "Triangle" },
   { symbol: "□", label: "Square" },
+  { symbol: "◇", label: "Diamond" },
+  { symbol: "+", label: "Plus" },
+  { symbol: "★", label: "Star" },
+  { symbol: "⬡", label: "Hexagon" },
+  { symbol: "♥", label: "Heart" },
+  { symbol: "⚡", label: "Bolt" },
+  { symbol: "☾", label: "Moon" },
+  { symbol: "✳", label: "Asterisk" },
 ] as const;
 
 // Room codes avoid look-alike characters (0/O, 1/I/L).
