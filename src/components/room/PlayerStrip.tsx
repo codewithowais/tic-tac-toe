@@ -114,6 +114,46 @@ function PlayerChip({
     "\u00a0"
   );
 
+  const hasBadges = !editing && (isMe || talking || isHost);
+  const badges = !editing && (
+    <>
+      {isMe && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label="Change your name"
+          title="Change your name"
+          className={clsx(
+            "flex shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-surface-2 hover:text-ink",
+            compact ? "h-5 w-5" : "h-6 w-6",
+          )}
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+            <path d="m13.5 6.5 4 4" />
+          </svg>
+        </button>
+      )}
+      {talking && (
+        <span className="flex h-3.5 shrink-0 items-end gap-[2px]" style={{ color }} aria-label="Talking">
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="w-[3px] rounded-full bg-current"
+              animate={{ height: ["35%", "100%", "35%"] }}
+              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12 }}
+            />
+          ))}
+        </span>
+      )}
+      {isHost && (
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-muted" fill="currentColor" aria-label="Host">
+          <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z" />
+        </svg>
+      )}
+    </>
+  );
+
   return (
     <li
       className={clsx(
@@ -150,7 +190,7 @@ function PlayerChip({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className={clsx("flex gap-1", compact ? "items-start" : "items-center")}>
+        <div className="flex items-center gap-1">
           {editing ? (
             <NameEditor onDone={() => setEditing(false)} className="w-full" />
           ) : (
@@ -163,39 +203,15 @@ function PlayerChip({
               {name}
             </span>
           )}
-          {isMe && !editing && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              aria-label="Change your name"
-              title="Change your name"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-surface-2 hover:text-ink"
-            >
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" />
-                <path d="m13.5 6.5 4 4" />
-              </svg>
-            </button>
-          )}
-          {talking && !editing && (
-            <span className="flex h-3.5 shrink-0 items-end gap-[2px]" style={{ color }} aria-label="Talking">
-              {[0, 1, 2].map((i) => (
-                <motion.span
-                  key={i}
-                  className="w-[3px] rounded-full bg-current"
-                  animate={{ height: ["35%", "100%", "35%"] }}
-                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12 }}
-                />
-              ))}
-            </span>
-          )}
-          {isHost && !editing && (
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-muted" fill="currentColor" aria-label="Host">
-              <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z" />
-            </svg>
-          )}
+          {/* Beside the name normally; under it in crowded rooms, where the name needs the width. */}
+          {!compact && badges}
         </div>
-        {subtitle !== null && <div className={clsx("text-xs text-muted", compact && "mt-0.5")}>{subtitle}</div>}
+        {(subtitle !== null || (compact && hasBadges)) && (
+          <div className={clsx("flex flex-wrap items-center gap-x-1 text-xs text-muted", compact && "mt-0.5")}>
+            {subtitle}
+            {compact && badges}
+          </div>
+        )}
       </div>
 
       <motion.span
