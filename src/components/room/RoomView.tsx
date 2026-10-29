@@ -23,6 +23,7 @@ import { Mark } from "../Mark";
 import { useToast } from "../Toast";
 import { Button, Spinner } from "../ui";
 import { NameEditor } from "./NameEditor";
+import { BoardScroller, boardMaxWidth } from "./BoardFrame";
 import { Chat } from "./Chat";
 import { PlayerStrip } from "./PlayerStrip";
 import { VoiceBar } from "./VoiceBar";
@@ -251,7 +252,7 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
         />
         <VoiceBar voice={voice} room={room} me={me} />
 
-        <div className="relative mx-auto w-full max-w-[min(100%,560px,calc(100dvh-340px))] min-w-[260px]">
+        <div className="relative mx-auto w-full min-w-[260px]" style={{ maxWidth: boardMaxWidth(room.settings.size) }}>
           {room.status === "lobby" ? (
             <Lobby
               room={room}
@@ -260,19 +261,21 @@ function LiveRoom({ room, me }: { room: RoomState; me: Id<"players"> }) {
               onAddBot={(level) => run(addBot({ token, code: room.code, level }))}
             />
           ) : (
-            <Board
-              key={room.round}
-              size={room.settings.size}
-              board={room.board}
-              mySeat={seated ? mySeat : null}
-              canPlay={myTurn}
-              winLine={room.winLine}
-              winner={room.winner}
-              onPlay={(cell) => {
-                sounds.unlock();
-                run(move({ token, code: room.code, cell }));
-              }}
-            />
+            <BoardScroller size={room.settings.size} lastMove={room.lastMove}>
+              <Board
+                key={room.round}
+                size={room.settings.size}
+                board={room.board}
+                mySeat={seated ? mySeat : null}
+                canPlay={myTurn}
+                winLine={room.winLine}
+                winner={room.winner}
+                onPlay={(cell) => {
+                  sounds.unlock();
+                  run(move({ token, code: room.code, cell }));
+                }}
+              />
+            </BoardScroller>
           )}
           <ReactionBubbles roomId={room._id} me={me} />
         </div>
@@ -370,14 +373,14 @@ function Lobby({
         <GridLines size={room.settings.size} animate />
       </div>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="flex gap-1">
+        <div className="flex max-w-[16rem] flex-wrap justify-center gap-1">
           {Array.from({ length: room.settings.maxPlayers }, (_, i) => (
             <motion.span
               key={i}
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
             >
-              <Mark seat={i} strokeWidth={12} className="h-8 w-8" />
+              <Mark seat={i} strokeWidth={12} className={room.settings.maxPlayers > 6 ? "h-6 w-6" : "h-8 w-8"} />
             </motion.span>
           ))}
         </div>

@@ -1,12 +1,12 @@
 # tic tac toe
 
-Live, multiplayer tic-tac-toe for 2–4 players. Create a room, share the link, play in real time. Anyone else with the link can watch.
+Live, multiplayer tic-tac-toe for 2–12 players. Create a room, share the link, play in real time. Anyone else with the link can watch.
 
-- **Modes:** Classic (2 players, 3×3), Trio (3 players, 4×4), Squad (4 players, 5×5, four in a row) or Custom (2–4 players, 3×3 to 7×7, 3–5 in a row)
+- **Modes:** Classic (2 players, 3×3), Trio (3 players, 4×4), Squad (4 players, 5×5, four in a row) or Custom: 2–12 players on a 3×3 to 15×15 board, with a win line of 3 up to the board's width. N players need at least an (N+1)×(N+1) board, so the board grows as you add players. Every player gets their own shape and colour, and big boards scroll sideways on small phones instead of shrinking the cells
 - **Play vs the computer:** go solo, or have the host fill open seats with computers. Pick Easy, Medium or Hard for each one (Hard can't be beaten on 3×3)
 - **Leaderboard** at `/leaderboard`: this week (resets Monday 00:00 UTC) and all time. Every win counts, including against the computer
 - **Admin** at `/admin` (passcode): manage rooms, rename or remove players, reset leaderboards, usage overview
-- **Chat** in every room (players and spectators), and **live voice chat** for up to 4 people: direct browser-to-browser audio using Google's free STUN servers, so it costs nothing. Networks that block direct connections would need a TURN relay (not set up)
+- **Chat** in every room (players and spectators), and **live voice chat** for up to 4 people at a time (even in bigger games): direct browser-to-browser audio using Google's free STUN servers, so it costs nothing. Networks that block direct connections would need a TURN relay (not set up)
 - **Spoken announcements** in English, English slang, Urdu or Desi mix, with a chime and hurry-up ticks
 - Nicknames and a running score per room, online presence, emoji reactions, and a turn timer (15/30/60s; if it runs out, the server makes a random move for you)
 - Light (“paper”) and dark (“chalkboard”) themes, sound effects, keyboard play (arrow keys + Enter), works on phones

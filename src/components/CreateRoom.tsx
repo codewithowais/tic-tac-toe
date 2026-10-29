@@ -7,8 +7,11 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { api } from "@convex/_generated/api";
 import {
+  MAX_PLAYERS,
   MAX_SIZE,
-  MAX_WIN_LENGTH,
+  MIN_PLAYERS,
+  MIN_SIZE,
+  MIN_WIN_LENGTH,
   MODES,
   TURN_SECONDS,
   normalizeCode,
@@ -33,7 +36,10 @@ const MODE_COPY: Record<ModeKey, { name: string; blurb: string }> = {
 };
 
 /** A tiny board diagram: the grid size, with one mark per player. */
-function MiniGrid({ size, players }: { size: number; players: number }) {
+function MiniGrid({ size: fullSize, players: fullPlayers }: { size: number; players: number }) {
+  // The icon is only a hint of the game's shape, so big boards and crowds are drawn smaller.
+  const size = Math.min(fullSize, 7);
+  const players = Math.min(fullPlayers, size);
   const lines = [];
   for (let i = 1; i < size; i++) {
     const p = (i / size) * 100;
@@ -53,6 +59,11 @@ function MiniGrid({ size, players }: { size: number; players: number }) {
       ))}
     </svg>
   );
+}
+
+/** The smallest board a crowd can play on: N players need at least (N+1)×(N+1). */
+function minBoard(players: number) {
+  return players > 2 ? players + 1 : MIN_SIZE;
 }
 
 function Stepper({
@@ -102,7 +113,7 @@ export function CreateRoom() {
   const [turnSeconds, setTurnSeconds] = useState<number>(30);
   const [opponents, setOpponents] = useState<"friends" | "computer">("friends");
   // One level per computer seat, so levels can be mixed. Only the first maxPlayers - 1 are used.
-  const [botLevels, setBotLevels] = useState<BotLevel[]>(["medium", "medium", "medium"]);
+  const [botLevels, setBotLevels] = useState<BotLevel[]>(() => Array(MAX_PLAYERS - 1).fill("medium"));
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -118,8 +129,8 @@ export function CreateRoom() {
     setCustom((c) => {
       const next = { ...c, ...patch };
       // Keep the board big enough for the players, and the win length within the board.
-      if (next.maxPlayers > 2) next.size = Math.max(next.size, next.maxPlayers + 1);
-      next.winLength = Math.min(Math.max(3, next.winLength), Math.min(next.size, MAX_WIN_LENGTH));
+      next.size = Math.min(MAX_SIZE, Math.max(next.size, minBoard(next.maxPlayers)));
+      next.winLength = Math.min(Math.max(MIN_WIN_LENGTH, next.winLength), next.size);
       return next;
     });
   }
@@ -214,11 +225,17 @@ export function CreateRoom() {
                 className="overflow-hidden"
               >
                 <div className="mt-2 flex flex-col gap-1 rounded-2xl bg-surface-2 px-4 py-3">
-                  <Stepper label="Players" value={custom.maxPlayers} min={2} max={4} onChange={(v) => updateCustom({ maxPlayers: v })} />
+                  <Stepper
+                    label="Players"
+                    value={custom.maxPlayers}
+                    min={MIN_PLAYERS}
+                    max={MAX_PLAYERS}
+                    onChange={(v) => updateCustom({ maxPlayers: v })}
+                  />
                   <Stepper
                     label="Board"
                     value={custom.size}
-                    min={custom.maxPlayers > 2 ? custom.maxPlayers + 1 : 3}
+                    min={minBoard(custom.maxPlayers)}
                     max={MAX_SIZE}
                     onChange={(v) => updateCustom({ size: v })}
                     format={(v) => `${v}×${v}`}
@@ -226,10 +243,16 @@ export function CreateRoom() {
                   <Stepper
                     label="In a row to win"
                     value={custom.winLength}
-                    min={3}
-                    max={Math.min(custom.size, MAX_WIN_LENGTH)}
+                    min={MIN_WIN_LENGTH}
+                    max={custom.size}
                     onChange={(v) => updateCustom({ winLength: v })}
                   />
+                  {custom.maxPlayers > 2 && (
+                    <p className="pt-1 text-xs text-muted">
+                      {custom.maxPlayers} players need at least a {minBoard(custom.maxPlayers)}×{minBoard(custom.maxPlayers)} board
+                      {custom.winLength > 5 && ". Long lines are hard to make with a crowd"}.
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}

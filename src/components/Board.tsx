@@ -25,7 +25,9 @@ export function Board({ size, board, mySeat, canPlay, winLine, winner, onPlay }:
   const [initial] = useState(() => new Set(board.flatMap((c, i) => (c === null ? [] : [i]))));
   const [focus, setFocus] = useState(() => Math.floor((size * size) / 2));
   const cells = useRef<(HTMLButtonElement | null)[]>([]);
-  const markStroke = size <= 3 ? 9 : size <= 5 ? 10 : 11;
+  // Bigger boards have smaller cells, so their marks get a heavier line and less empty space around them.
+  const markStroke = size <= 3 ? 9 : size <= 5 ? 10 : size <= 9 ? 11 : 13;
+  const cellPadding = size <= 3 ? 16 : size <= 5 ? 12 : size <= 9 ? 8 : 6;
 
   function onKeyDown(e: KeyboardEvent, index: number) {
     const row = Math.floor(index / size);
@@ -77,7 +79,7 @@ export function Board({ size, board, mySeat, canPlay, winLine, winner, onPlay }:
               className={`group relative flex min-h-0 min-w-0 items-center justify-center rounded-lg transition-opacity duration-500 ${
                 playable ? "cursor-pointer" : "cursor-default"
               } ${dimmed ? "opacity-30" : "opacity-100"}`}
-              style={{ padding: `${size <= 3 ? 16 : size <= 5 ? 12 : 8}%` }}
+              style={{ padding: `${cellPadding}%` }}
             >
               {!empty && <Mark seat={cell} draw={!initial.has(i)} strokeWidth={markStroke} className="h-full w-full" />}
               {playable && mySeat !== null && (

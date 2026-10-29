@@ -23,15 +23,8 @@ export function PlayerStrip({ room, me, online, speaking, onKick }: Props) {
   const slots = Array.from({ length: room.settings.maxPlayers }, (_, i) => room.seats[i] ?? null);
   const isHost = room.hostId === me;
   return (
-    <ol
-      className={clsx(
-        "grid gap-2",
-        slots.length === 2 && "grid-cols-2",
-        slots.length === 3 && "grid-cols-3",
-        slots.length === 4 && "grid-cols-2 sm:grid-cols-4",
-      )}
-      aria-label="Players"
-    >
+    // As many columns as fit, from 2 on a phone to 5 on a wide screen; a few players stretch to fill the row.
+    <ol className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }} aria-label="Players">
       {slots.map((seat, i) =>
         seat ? (
           <PlayerChip
